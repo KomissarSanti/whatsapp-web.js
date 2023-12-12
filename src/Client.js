@@ -403,6 +403,7 @@ class Client extends EventEmitter {
 
             const { linkingMethod } = this.options;
 
+            
             if (linkingMethod.isPhone()) {
                 await handleLinkWithPhoneNumber();
             } else {
