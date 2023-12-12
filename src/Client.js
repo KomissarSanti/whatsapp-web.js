@@ -91,6 +91,7 @@ class Client extends EventEmitter {
         this.authStrategy.setup(this);
 
         this.pupBrowser = null;
+        
         this.pupPage = null;
 
         Util.setFfmpegPath(this.options.ffmpegPath);
