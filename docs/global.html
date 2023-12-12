@@ -4,7 +4,7 @@
 <head>
   <meta name="generator" content="JSDoc 3.6.11">
   <meta charset="utf-8">
-  <title>whatsapp-web.js 1.23.0 &raquo; Globals</title>
+  <title>whatsapp-web.js 1.23.1 &raquo; Globals</title>
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Karla:400,400i,700,700i" type="text/css">
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Noto+Serif:400,400i,700,700i" type="text/css">
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Inconsolata:500" type="text/css">
@@ -15,7 +15,7 @@
   <nav id="jsdoc-navbar" role="navigation" class="jsdoc-navbar">
     <div id="jsdoc-navbar-container">
       <div id="jsdoc-navbar-content">
-        <a href="index.html" class="jsdoc-navbar-package-name">whatsapp-web.<wbr>js 1.<wbr>23.<wbr>0</a>
+        <a href="index.html" class="jsdoc-navbar-package-name">whatsapp-web.<wbr>js 1.<wbr>23.<wbr>1</a>
       </div>
     </div>
   </nav>
@@ -102,6 +102,9 @@
                     <dt><a href="global.html#GroupParticipant">GroupParticipant</a></dt>
                     <dd>
                     </dd>
+                    <dt><a href="global.html#LinkingMethodData">LinkingMethodData</a></dt>
+                    <dd>
+                    </dd>
                     <dt><a href="global.html#LocationSendOptions">LocationSendOptions</a></dt>
                     <dd>
                     </dd>
@@ -117,13 +120,13 @@
                     <dt><a href="global.html#MembershipRequestActionResult">MembershipRequestActionResult</a></dt>
                     <dd>
                     </dd>
-                    <dt><a href="global.html#MessageInfo">MessageInfo</a></dt>
-                    <dd>
-                    </dd>
                   </dl>
                 </div>
                 <div class="summary-column">
                   <dl class="dl-summary-callout">
+                    <dt><a href="global.html#MessageInfo">MessageInfo</a></dt>
+                    <dd>
+                    </dd>
                     <dt><a href="global.html#MessageSendOptions">MessageSendOptions</a></dt>
                     <dd>
                     </dd>
@@ -489,6 +492,19 @@
                     <tr>
                       <td>
                         <p>QR_RECEIVED</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <p>CODE_RECEIVED</p>
                       </td>
                       <td>
                         <p>&nbsp;</p>
@@ -2272,6 +2288,111 @@
               </section>
               <dl class="dl-compact">
               </dl>
+              <h3 id="LinkingMethodData"><span class="symbol-name">LinkingMethodData</span><small class="property-type">
+                  &nbsp;object</small></h3>
+              <section>
+                <h4>Parameter</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>data</p>
+                      </td>
+                      <td>
+                        <p><a href="global.html#LinkingMethodData">LinkingMethodData</a></p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>Linking method configuration</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <section>
+                <h4>Properties</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>maxRetries</p>
+                      </td>
+                      <td>
+                        <p>number</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>The maximum number of retries to get the QR code before disconnecting</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <p>number</p>
+                      </td>
+                      <td>
+                        <p>string</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>The phone number to link with. This should be in the format of <country code>
+                            <phone number> (e.g. 5521998765432)</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <p>qr</p>
+                      </td>
+                      <td>
+                        <p>QR</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>Configuration for QR code linking</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <p>phone</p>
+                      </td>
+                      <td>
+                        <p>Phone</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>Configuration for phone number linking</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <dl class="dl-compact">
+              </dl>
               <h3 id="LocationSendOptions"><span class="symbol-name">LocationSendOptions</span><small class="property-type">
                   &nbsp;Object</small></h3>
               <p>Location send options</p>
@@ -3229,7 +3350,7 @@
   <footer id="jsdoc-footer" class="jsdoc-footer">
     <div id="jsdoc-footer-container">
       <p>
-        Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> 3.6.11 on October 21, 2023.
+        Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> 3.6.11 on December 12, 2023.
       </p>
     </div>
   </footer>

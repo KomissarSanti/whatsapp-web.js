@@ -4,7 +4,7 @@
 <head>
   <meta name="generator" content="JSDoc 3.6.11">
   <meta charset="utf-8">
-  <title>whatsapp-web.js 1.23.0 &raquo; Class: Client</title>
+  <title>whatsapp-web.js 1.23.1 &raquo; Class: Client</title>
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Karla:400,400i,700,700i" type="text/css">
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Noto+Serif:400,400i,700,700i" type="text/css">
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Inconsolata:500" type="text/css">
@@ -15,7 +15,7 @@
   <nav id="jsdoc-navbar" role="navigation" class="jsdoc-navbar">
     <div id="jsdoc-navbar-container">
       <div id="jsdoc-navbar-content">
-        <a href="index.html" class="jsdoc-navbar-package-name">whatsapp-web.<wbr>js 1.<wbr>23.<wbr>0</a>
+        <a href="index.html" class="jsdoc-navbar-package-name">whatsapp-web.<wbr>js 1.<wbr>23.<wbr>1</a>
       </div>
     </div>
   </nav>
@@ -26,7 +26,7 @@
           <header class="page-header">
             <div class="symbol-detail-labels"><span class="label label-kind">class</span></div>
             <h1><small></small><span class="symbol-name">Client</span></h1>
-            <p class="source-link">Source: <a href="Client.js.html#source-line-56">Client.<wbr>js:56</a></p>
+            <p class="source-link">Source: <a href="Client.js.html#source-line-58">Client.<wbr>js:58</a></p>
             <div class="symbol-classdesc">
               <p>Starting point for interacting with the WhatsApp Web API</p>
             </div>
@@ -100,16 +100,16 @@
                     <dt><a href="Client.html#getContactById">getContactById(contactId)</a></dt>
                     <dd>
                     </dd>
-                  </dl>
-                </div>
-                <div class="summary-column">
-                  <dl class="dl-summary-callout">
                     <dt><a href="Client.html#getContacts">getContacts()</a></dt>
                     <dd>
                     </dd>
                     <dt><a href="Client.html#getCountryCode">getCountryCode(number)</a></dt>
                     <dd>
                     </dd>
+                  </dl>
+                </div>
+                <div class="summary-column">
+                  <dl class="dl-summary-callout">
                     <dt><a href="Client.html#getFormattedNumber">getFormattedNumber(number)</a></dt>
                     <dd>
                     </dd>
@@ -149,10 +149,6 @@
                     <dt><a href="Client.html#markChatUnread">markChatUnread(chatId)</a></dt>
                     <dd>
                     </dd>
-                  </dl>
-                </div>
-                <div class="summary-column">
-                  <dl class="dl-summary-callout">
                     <dt><a href="Client.html#muteChat">muteChat(chatId, unmuteDate)</a></dt>
                     <dd>
                     </dd>
@@ -165,6 +161,10 @@
                     <dt><a href="Client.html#resetState">resetState()</a></dt>
                     <dd>
                     </dd>
+                  </dl>
+                </div>
+                <div class="summary-column">
+                  <dl class="dl-summary-callout">
                     <dt><a href="Client.html#searchMessages">searchMessages(query[, options])</a></dt>
                     <dd>
                     </dd>
@@ -178,6 +178,18 @@
                     <dd>
                     </dd>
                     <dt><a href="Client.html#sendSeen">sendSeen(chatId)</a></dt>
+                    <dd>
+                    </dd>
+                    <dt><a href="Client.html#setAutoDownloadAudio">setAutoDownloadAudio(flag)</a></dt>
+                    <dd>
+                    </dd>
+                    <dt><a href="Client.html#setAutoDownloadDocuments">setAutoDownloadDocuments(flag)</a></dt>
+                    <dd>
+                    </dd>
+                    <dt><a href="Client.html#setAutoDownloadPhotos">setAutoDownloadPhotos(flag)</a></dt>
+                    <dd>
+                    </dd>
+                    <dt><a href="Client.html#setAutoDownloadVideos">setAutoDownloadVideos(flag)</a></dt>
                     <dd>
                     </dd>
                     <dt><a href="Client.html#setDisplayName">setDisplayName(displayName)</a></dt>
@@ -225,6 +237,9 @@
                     <dt><a href="Client.html#event:chat_removed">chat_removed</a></dt>
                     <dd>
                     </dd>
+                    <dt><a href="Client.html#event:code">code</a></dt>
+                    <dd>
+                    </dd>
                     <dt><a href="Client.html#event:contact_changed">contact_changed</a></dt>
                     <dd>
                     </dd>
@@ -259,13 +274,13 @@
                     <dt><a href="Client.html#event:message">message</a></dt>
                     <dd>
                     </dd>
+                    <dt><a href="Client.html#event:message_ack">message_ack</a></dt>
+                    <dd>
+                    </dd>
                   </dl>
                 </div>
                 <div class="summary-column">
                   <dl class="dl-summary-callout">
-                    <dt><a href="Client.html#event:message_ack">message_ack</a></dt>
-                    <dd>
-                    </dd>
                     <dt><a href="Client.html#event:message_create">message_create</a></dt>
                     <dd>
                     </dd>
@@ -410,7 +425,7 @@
                               <p>&nbsp;</p>
                             </td>
                             <td>
-                              <p>How many times should the qrcode be refreshed before giving up</p>
+                              <p>@deprecated This option should be set directly on the <code>linkingMethod.qr</code>.</p>
                             </td>
                           </tr>
                           <tr>
@@ -525,6 +540,20 @@
                               <p>Proxy Authentication object.</p>
                             </td>
                           </tr>
+                          <tr>
+                            <td>
+                              <p>linkingMethod</p>
+                            </td>
+                            <td>
+                              <p>&nbsp;</p>
+                            </td>
+                            <td>
+                              <p>&nbsp;</p>
+                            </td>
+                            <td>
+                              <p>Method to link with Whatsapp account. Can be either through QR code or phone number. Defaults to QR code.</p>
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </td>
@@ -537,6 +566,7 @@
               <dd>EventEmitter</dd>
               <dt>Fires</dt>
               <dd><a href="Client.html#event:qr">Client#event:qr</a></dd>
+              <dd><a href="Client.html#event:code">Client#event:code</a></dd>
               <dd><a href="Client.html#event:authenticated">Client#event:authenticated</a></dd>
               <dd><a href="Client.html#event:auth_failure">Client#event:auth_failure</a></dd>
               <dd><a href="Client.html#event:ready">Client#event:ready</a></dd>
@@ -553,7 +583,6 @@
               <dd><a href="Client.html#event:change_state">Client#event:change_state</a></dd>
               <dd><a href="Client.html#event:contact_changed">Client#event:contact_changed</a></dd>
               <dd><a href="Client.html#event:group_admin_changed">Client#event:group_admin_changed</a></dd>
-              <dd><a href="Client.html#event:group_membership_request">Client#event:group_membership_request</a></dd>
             </dl>
           </section>
           <section>
@@ -1770,6 +1799,142 @@
                 </dd>
               </dl>
               <div class="symbol-detail-labels"><span class="label label-async">async</span></div>
+              <h3 id="setAutoDownloadAudio"><span class="symbol-name">setAutoDownloadAudio</span><span class="signature"><span class="signature-params">(flag)</span></span></h3>
+              <p>Setting autoload download audio</p>
+              <section>
+                <h4>Parameter</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>flag</p>
+                      </td>
+                      <td>
+                        <p>boolean</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>true/false</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <dl class="dl-compact">
+              </dl>
+              <div class="symbol-detail-labels"><span class="label label-async">async</span></div>
+              <h3 id="setAutoDownloadDocuments"><span class="symbol-name">setAutoDownloadDocuments</span><span class="signature"><span class="signature-params">(flag)</span></span></h3>
+              <p>Setting autoload download documents</p>
+              <section>
+                <h4>Parameter</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>flag</p>
+                      </td>
+                      <td>
+                        <p>boolean</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>true/false</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <dl class="dl-compact">
+              </dl>
+              <div class="symbol-detail-labels"><span class="label label-async">async</span></div>
+              <h3 id="setAutoDownloadPhotos"><span class="symbol-name">setAutoDownloadPhotos</span><span class="signature"><span class="signature-params">(flag)</span></span></h3>
+              <p>Setting autoload download photos</p>
+              <section>
+                <h4>Parameter</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>flag</p>
+                      </td>
+                      <td>
+                        <p>boolean</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>true/false</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <dl class="dl-compact">
+              </dl>
+              <div class="symbol-detail-labels"><span class="label label-async">async</span></div>
+              <h3 id="setAutoDownloadVideos"><span class="symbol-name">setAutoDownloadVideos</span><span class="signature"><span class="signature-params">(flag)</span></span></h3>
+              <p>Setting autoload download videos</p>
+              <section>
+                <h4>Parameter</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>flag</p>
+                      </td>
+                      <td>
+                        <p>boolean</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>true/false</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <dl class="dl-compact">
+              </dl>
+              <div class="symbol-detail-labels"><span class="label label-async">async</span></div>
               <h3 id="setDisplayName"><span class="symbol-name">setDisplayName</span><span class="signature"><span class="signature-params">(displayName)</span>&nbsp;&rarr; <span class="signature-returns"> Promise containing Boolean</span></span></h3>
               <p>Sets the current user's display name.
                 This is the name shown to WhatsApp users that have not added you as a contact beside your number in groups and in your profile.</p>
@@ -2165,6 +2330,39 @@
                         <p>&nbsp;</p>
                       </td>
                       <td>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              <dl class="dl-compact">
+              </dl>
+              <h3 id="event:code"><span class="symbol-name">code</span></h3>
+              <p>Emitted when a QR code is received</p>
+              <section>
+                <h4>Parameter</h4>
+                <table class="jsdoc-details-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Optional</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <p>code</p>
+                      </td>
+                      <td>
+                        <p>string</p>
+                      </td>
+                      <td>
+                        <p>&nbsp;</p>
+                      </td>
+                      <td>
+                        <p>Code</p>
                       </td>
                     </tr>
                   </tbody>
@@ -3165,7 +3363,7 @@
   <footer id="jsdoc-footer" class="jsdoc-footer">
     <div id="jsdoc-footer-container">
       <p>
-        Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> 3.6.11 on October 21, 2023.
+        Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> 3.6.11 on December 12, 2023.
       </p>
     </div>
   </footer>

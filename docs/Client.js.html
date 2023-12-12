@@ -4,7 +4,7 @@
 <head>
   <meta name="generator" content="JSDoc 3.6.11">
   <meta charset="utf-8">
-  <title>whatsapp-web.js 1.23.0 &raquo; Source: Client.js</title>
+  <title>whatsapp-web.js 1.23.1 &raquo; Source: Client.js</title>
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Karla:400,400i,700,700i" type="text/css">
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Noto+Serif:400,400i,700,700i" type="text/css">
   <link rel="stylesheet" href="https://brick.a.ssl.fastly.net/Inconsolata:500" type="text/css">
@@ -15,7 +15,7 @@
   <nav id="jsdoc-navbar" role="navigation" class="jsdoc-navbar">
     <div id="jsdoc-navbar-container">
       <div id="jsdoc-navbar-content">
-        <a href="index.html" class="jsdoc-navbar-package-name">whatsapp-web.<wbr>js 1.<wbr>23.<wbr>0</a>
+        <a href="index.html" class="jsdoc-navbar-package-name">whatsapp-web.<wbr>js 1.<wbr>23.<wbr>1</a>
       </div>
     </div>
   </nav>
@@ -45,6 +45,7 @@ const WebCacheFactory &#x3D; require(&#x27;./webCache/WebCacheFactory&#x27;);
 const { ClientInfo, Message, MessageMedia, Contact, Location, Poll, GroupNotification, Label, Call, Buttons, List, Reaction } &#x3D; require(&#x27;./structures&#x27;);
 const LegacySessionAuth &#x3D; require(&#x27;./authStrategies/LegacySessionAuth&#x27;);
 const NoAuth &#x3D; require(&#x27;./authStrategies/NoAuth&#x27;);
+const LinkingMethod &#x3D; require(&#x27;./LinkingMethod&#x27;);
 
 /**
  * Starting point for interacting with the WhatsApp Web API
@@ -55,17 +56,19 @@ const NoAuth &#x3D; require(&#x27;./authStrategies/NoAuth&#x27;);
  * @param {object} options.webVersionCache - Determines how to retrieve the WhatsApp Web version. Defaults to a local cache (LocalWebCache) that falls back to latest if the requested version is not found.
  * @param {number} options.authTimeoutMs - Timeout for authentication selector in puppeteer
  * @param {object} options.puppeteer - Puppeteer launch options. View docs here: https://github.com/puppeteer/puppeteer/
- * @param {number} options.qrMaxRetries - How many times should the qrcode be refreshed before giving up
+ * @param {number} options.qrMaxRetries - @deprecated This option should be set directly on the &#x60;linkingMethod.qr&#x60;.
  * @param {string} options.restartOnAuthFail  - @deprecated This option should be set directly on the LegacySessionAuth.
- * @param {object} options.session - @deprecated Only here for backwards-compatibility. You should move to using LocalAuth, or set the authStrategy to LegacySessionAuth explicitly. 
+ * @param {object} options.session - @deprecated Only here for backwards-compatibility. You should move to using LocalAuth, or set the authStrategy to LegacySessionAuth explicitly.
  * @param {number} options.takeoverOnConflict - If another whatsapp web session is detected (another browser), take over the session in the current browser
  * @param {number} options.takeoverTimeoutMs - How much time to wait before taking over the session
  * @param {string} options.userAgent - User agent to use in puppeteer
- * @param {string} options.ffmpegPath - Ffmpeg path to use when formating videos to webp while sending stickers 
+ * @param {string} options.ffmpegPath - Ffmpeg path to use when formating videos to webp while sending stickers
  * @param {boolean} options.bypassCSP - Sets bypassing of page&#x27;s Content-Security-Policy.
  * @param {object} options.proxyAuthentication - Proxy Authentication object.
- * 
+ * @param {object} options.linkingMethod - Method to link with Whatsapp account. Can be either through QR code or phone number. Defaults to QR code.
+ *
  * @fires Client#qr
+ * @fires Client#code
  * @fires Client#authenticated
  * @fires Client#auth_failure
  * @fires Client#ready
@@ -82,14 +85,21 @@ const NoAuth &#x3D; require(&#x27;./authStrategies/NoAuth&#x27;);
  * @fires Client#change_state
  * @fires Client#contact_changed
  * @fires Client#group_admin_changed
- * @fires Client#group_membership_request
  */
 class Client extends EventEmitter {
     constructor(options &#x3D; {}) {
         super();
 
         this.options &#x3D; Util.mergeDefault(DefaultOptions, options);
-        
+
+        if (!this.options.linkingMethod) {
+            this.options.linkingMethod &#x3D; new LinkingMethod({
+                qr: {
+                    maxRetries: this.options.qrMaxRetries,
+                },
+            });
+        }
+
         if(!this.options.authStrategy) {
             if(Object.prototype.hasOwnProperty.call(this.options, &#x27;session&#x27;)) {
                 process.emitWarning(
@@ -112,6 +122,7 @@ class Client extends EventEmitter {
         this.authStrategy.setup(this);
 
         this.pupBrowser &#x3D; null;
+        
         this.pupPage &#x3D; null;
 
         Util.setFfmpegPath(this.options.ffmpegPath);
@@ -242,60 +253,82 @@ class Client extends EventEmitter {
                 return;
             }
 
-            const QR_CONTAINER &#x3D; &#x27;div[data-ref]&#x27;;
-            const QR_RETRY_BUTTON &#x3D; &#x27;div[data-ref] &gt; span &gt; button&#x27;;
-            let qrRetries &#x3D; 0;
-            await page.exposeFunction(&#x27;qrChanged&#x27;, async (qr) &#x3D;&gt; {
-                /**
-                * Emitted when a QR code is received
-                * @event Client#qr
-                * @param {string} qr QR Code
-                */
-                this.emit(Events.QR_RECEIVED, qr);
-                if (this.options.qrMaxRetries &gt; 0) {
-                    qrRetries++;
-                    if (qrRetries &gt; this.options.qrMaxRetries) {
-                        this.emit(Events.DISCONNECTED, &#x27;Max qrcode retries reached&#x27;);
-                        await this.destroy();
+            const handleLinkWithQRCode &#x3D; async () &#x3D;&gt; {
+                const QR_CONTAINER &#x3D; &#x27;div[data-ref]&#x27;;
+                const QR_RETRY_BUTTON &#x3D; &#x27;div[data-ref] &gt; span &gt; button&#x27;;
+                let qrRetries &#x3D; 0;
+                await page.exposeFunction(&#x27;qrChanged&#x27;, async (qr) &#x3D;&gt; {
+                    /**
+                     * Emitted when a QR code is received
+                     * @event Client#qr
+                     * @param {string} qr QR Code
+                     */
+                    this.emit(Events.QR_RECEIVED, qr);
+                    if (this.options.linkingMethod.qr.maxRetries &gt; 0) {
+                        qrRetries++;
+                        if (qrRetries &gt; this.options.linkingMethod.qr.maxRetries) {
+                            this.emit(
+                                Events.DISCONNECTED,
+                                &#x27;Max qrcode retries reached&#x27;
+                            );
+                            await this.destroy();
+                        }
                     }
-                }
-            });
-
-            await page.evaluate(function (selectors) {
-                const qr_container &#x3D; document.querySelector(selectors.QR_CONTAINER);
-                window.qrChanged(qr_container.dataset.ref);
-
-                const obs &#x3D; new MutationObserver((muts) &#x3D;&gt; {
-                    muts.forEach(mut &#x3D;&gt; {
-                        // Listens to qr token change
-                        if (mut.type &#x3D;&#x3D;&#x3D; &#x27;attributes&#x27; &amp;amp;&amp;amp; mut.attributeName &#x3D;&#x3D;&#x3D; &#x27;data-ref&#x27;) {
-                            window.qrChanged(mut.target.dataset.ref);
-                        }
-                        // Listens to retry button, when found, click it
-                        else if (mut.type &#x3D;&#x3D;&#x3D; &#x27;childList&#x27;) {
-                            const retry_button &#x3D; document.querySelector(selectors.QR_RETRY_BUTTON);
-                            if (retry_button) retry_button.click();
-                        }
-                    });
                 });
-                obs.observe(qr_container.parentElement, {
-                    subtree: true,
-                    childList: true,
-                    attributes: true,
-                    attributeFilter: [&#x27;data-ref&#x27;],
-                });
-            }, {
-                QR_CONTAINER,
-                QR_RETRY_BUTTON
-            });
 
-            // Wait for code scan
+                await page.evaluate(
+                    function (selectors) {
+                        const qr_container &#x3D; document.querySelector(
+                            selectors.QR_CONTAINER
+                        );
+                        window.qrChanged(qr_container.dataset.ref);
+
+                        const obs &#x3D; new MutationObserver((muts) &#x3D;&gt; {
+                            muts.forEach((mut) &#x3D;&gt; {
+                                // Listens to qr token change
+                                if (
+                                    mut.type &#x3D;&#x3D;&#x3D; &#x27;attributes&#x27; &amp;amp;&amp;amp;
+                                    mut.attributeName &#x3D;&#x3D;&#x3D; &#x27;data-ref&#x27;
+                                ) {
+                                    window.qrChanged(mut.target.dataset.ref);
+                                }
+                                // Listens to retry button, when found, click it
+                                else if (mut.type &#x3D;&#x3D;&#x3D; &#x27;childList&#x27;) {
+                                    const retry_button &#x3D; document.querySelector(
+                                        selectors.QR_RETRY_BUTTON
+                                    );
+                                    if (retry_button) retry_button.click();
+                                }
+                            });
+                        });
+                        obs.observe(qr_container.parentElement, {
+                            subtree: true,
+                            childList: true,
+                            attributes: true,
+                            attributeFilter: [&#x27;data-ref&#x27;],
+                        });
+                    },
+                    {
+                        QR_CONTAINER,
+                        QR_RETRY_BUTTON,
+                    }
+                );
+            };
+
+            // const { linkingMethod } &#x3D; this.options;
+            // if (linkingMethod.isPhone()) {
+            //     await handleLinkWithPhoneNumber();
+            // } else {
+            await handleLinkWithQRCode();
+            // }
+
+            // Wait for link success
             try {
                 await page.waitForSelector(INTRO_IMG_SELECTOR, { timeout: 0 });
             } catch(error) {
                 if (
-                    error.name &#x3D;&#x3D;&#x3D; &#x27;ProtocolError&#x27; &amp;amp;&amp;amp; 
-                    error.message &amp;amp;&amp;amp; 
+                    error.name &#x3D;&#x3D;&#x3D; &#x27;ProtocolError&#x27; &amp;amp;&amp;amp;
+                    error.message &amp;amp;&amp;amp;
                     error.message.match(/Target closed/)
                 ) {
                     // something has called .destroy() while waiting
@@ -304,7 +337,6 @@ class Client extends EventEmitter {
 
                 throw error;
             }
-
         }
 
         await page.evaluate(() &#x3D;&gt; {
@@ -317,13 +349,13 @@ class Client extends EventEmitter {
              */
             window.compareWwebVersions &#x3D; (lOperand, operator, rOperand) &#x3D;&gt; {
                 if (![&#x27;&gt;&#x27;, &#x27;&gt;&#x3D;&#x27;, &#x27;&amp;lt;&#x27;, &#x27;&amp;lt;&#x3D;&#x27;, &#x27;&#x3D;&#x27;].includes(operator)) {
-                    throw new class _ extends Error {
+                    throw class _ extends Error {
                         constructor(m) { super(m); this.name &#x3D; &#x27;CompareWwebVersionsError&#x27;; }
                     }(&#x27;Invalid comparison operator is provided&#x27;);
 
                 }
                 if (typeof lOperand !&#x3D;&#x3D; &#x27;string&#x27; || typeof rOperand !&#x3D;&#x3D; &#x27;string&#x27;) {
-                    throw new class _ extends Error {
+                    throw class _ extends Error {
                         constructor(m) { super(m); this.name &#x3D; &#x27;CompareWwebVersionsError&#x27;; }
                     }(&#x27;A non-string WWeb version type is provided&#x27;);
                 }
@@ -778,6 +810,126 @@ class Client extends EventEmitter {
         }
     }
 
+    //todo
+    async handleLinkWithPhoneNumber(phone) {
+        const page &#x3D; this.pupPage;
+        const LINK_WITH_PHONE_BUTTON &#x3D; &#x27;span[role&#x3D;&quot;button&quot;]&#x27;;
+        const PHONE_NUMBER_INPUT &#x3D; &#x27;input[type&#x3D;&quot;text&quot;]&#x27;;
+        const NEXT_BUTTON &#x3D; &#x27;div[role&#x3D;&quot;button&quot;] &gt; div &gt; div&#x27;;
+        const CODE_CONTAINER &#x3D; &#x27;div[dir&#x3D;&quot;ltr&quot;]&#x27;;
+        const GENERATE_NEW_CODE_BUTTON &#x3D; &#x27;div[role&#x3D;dialog] div[role&#x3D;&quot;button&quot;]&#x27;;
+        const LINK_WITH_PHONE_VIEW &#x3D; &#x27;#app&#x27;;
+
+        await page.exposeFunction(&#x27;codeChanged&#x27;, async (code) &#x3D;&gt; {
+            /**
+             * Emitted when a QR code is received
+             * @event Client#code
+             * @param {string} code Code
+             */
+            this.emit(Events.CODE_RECEIVED, code);
+        });
+
+        const clickOnLinkWithPhoneButton &#x3D; async () &#x3D;&gt; {
+            await page.waitForSelector(LINK_WITH_PHONE_BUTTON, { timeout: 0 });
+            await page.click(LINK_WITH_PHONE_BUTTON);
+        };
+
+        const typePhoneNumber &#x3D; async () &#x3D;&gt; {
+            await page.waitForSelector(PHONE_NUMBER_INPUT);
+            const inputValue &#x3D; await page.$eval(PHONE_NUMBER_INPUT, el &#x3D;&gt; el.value);
+            await page.click(PHONE_NUMBER_INPUT);
+            for (let i &#x3D; 0; i &amp;lt; inputValue.length; i++) {
+                await page.keyboard.press(&#x27;Backspace&#x27;);
+            }
+
+            // await page.type(PHONE_NUMBER_INPUT, this.options.linkingMethod.phone.number);
+            await page.type(PHONE_NUMBER_INPUT, phone);
+            await page.focus(PHONE_NUMBER_INPUT);
+            await page.keyboard.press(&#x27;Enter&#x27;);
+        };
+
+        await clickOnLinkWithPhoneButton();
+        await typePhoneNumber();
+
+        await page.evaluate(async function (selectors) {
+            function waitForElementToExist(selector, timeout &#x3D; 60000) {
+                return new Promise((resolve, reject) &#x3D;&gt; {
+                    if (document.querySelector(selector)) {
+                        return resolve(document.querySelector(selector));
+                    }
+
+                    const observer &#x3D; new MutationObserver(() &#x3D;&gt; {
+                        if (document.querySelector(selector)) {
+                            resolve(document.querySelector(selector));
+                            observer.disconnect();
+                        }
+                    });
+
+                    observer.observe(document.body, {
+                        subtree: true,
+                        childList: true,
+                    });
+
+                    if (timeout &gt; 0) {
+                        setTimeout(() &#x3D;&gt; {
+                            console.log(&#x60;waitForElementToExist: ${selector} not found in time&#x60;);
+                            reject(
+                                new Error(
+                                    &#x60;waitForElementToExist: ${selector} not found in time&#x60;
+                                )
+                            );
+                        }, timeout);
+                    }
+                });
+            }
+
+            await waitForElementToExist(selectors.CODE_CONTAINER);
+
+            const getCode &#x3D; () &#x3D;&gt; {
+                const codeContainer &#x3D; document.querySelector(selectors.CODE_CONTAINER);
+                const code &#x3D; Array.from(codeContainer.children)[0];
+
+                const cells &#x3D; Array.from(code.children);
+                return cells.map((cell) &#x3D;&gt; cell.textContent).join(&#x27;&#x27;);
+            };
+
+            let code &#x3D; getCode();
+            window.codeChanged(code);
+
+            const entirePageObserver &#x3D; new MutationObserver(() &#x3D;&gt; {
+                const generateNewCodeButton &#x3D; document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
+                if (generateNewCodeButton) {
+                    generateNewCodeButton.click();
+                    return;
+                }
+            });
+
+            entirePageObserver.observe(document, {
+                subtree: true,
+                childList: true,
+            });
+
+            const linkWithPhoneView &#x3D; document.querySelector(selectors.LINK_WITH_PHONE_VIEW);
+            const linkWithPhoneViewObserver &#x3D; new MutationObserver(() &#x3D;&gt; {
+                const newCode &#x3D; getCode();
+
+                if (newCode !&#x3D;&#x3D; code) {
+                    window.codeChanged(newCode);
+                    code &#x3D; newCode;
+                }
+            });
+            linkWithPhoneViewObserver.observe(linkWithPhoneView, {
+                subtree: true,
+                childList: true,
+            });
+
+        }, {
+            CODE_CONTAINER,
+            GENERATE_NEW_CODE_BUTTON,
+            LINK_WITH_PHONE_VIEW
+        });
+    }
+    
     /**
      * Closes the client
      */
@@ -802,6 +954,10 @@ class Client extends EventEmitter {
         }
         
         await this.authStrategy.logout();
+    }
+
+    async getPhoneCode() {
+
     }
 
     /**
@@ -1078,8 +1234,8 @@ class Client extends EventEmitter {
             if(!window.Store.Conn.canSetMyPushname()) return false;
 
             if(window.Store.MDBackend) {
-                // TODO
-                return false;
+                await window.Store.Settings.setPushname(displayName);
+                return true;
             } else {
                 const res &#x3D; await window.Store.Wap.setPushname(displayName);
                 return !res.status || res.status &#x3D;&#x3D;&#x3D; 200;
@@ -1628,6 +1784,67 @@ class Client extends EventEmitter {
             return await window.WWebJS.membershipRequestAction(groupId, &#x27;Reject&#x27;, requesterIds, sleep);
         }, groupId, options);
     }
+
+
+    /**
+     * Setting  autoload download audio
+     * @param {boolean} flag true/false
+     */
+    async setAutoDownloadAudio(flag) {
+        await this.pupPage.evaluate(async flag &#x3D;&gt; {
+            const autoDownload &#x3D; window.Store.Settings.getAutoDownloadAudio();
+            if (autoDownload &#x3D;&#x3D;&#x3D; flag) {
+                return flag;
+            }
+            await window.Store.Settings.setAutoDownloadAudio(flag);
+            return flag;
+        }, flag);
+    }
+
+    /**
+     * Setting  autoload download documents
+     * @param {boolean} flag true/false
+     */
+    async setAutoDownloadDocuments(flag) {
+        await this.pupPage.evaluate(async flag &#x3D;&gt; {
+            const autoDownload &#x3D; window.Store.Settings.getAutoDownloadDocuments();
+            if (autoDownload &#x3D;&#x3D;&#x3D; flag) {
+                return flag;
+            }
+            await window.Store.Settings.setAutoDownloadDocuments(flag);
+            return flag;
+        }, flag);
+    }
+
+    /**
+     * Setting  autoload download photos
+     * @param {boolean} flag true/false
+     */
+    async setAutoDownloadPhotos(flag) {
+        await this.pupPage.evaluate(async flag &#x3D;&gt; {
+            const autoDownload &#x3D; window.Store.Settings.getAutoDownloadPhotos();
+            if (autoDownload &#x3D;&#x3D;&#x3D; flag) {
+                return flag;
+            }
+            await window.Store.Settings.setAutoDownloadPhotos(flag);
+            return flag;
+        }, flag);
+    }
+
+    /**
+     * Setting  autoload download videos
+     * @param {boolean} flag true/false
+     */
+    async setAutoDownloadVideos(flag) {
+        await this.pupPage.evaluate(async flag &#x3D;&gt; {
+            const autoDownload &#x3D; window.Store.Settings.getAutoDownloadVideos();
+            if (autoDownload &#x3D;&#x3D;&#x3D; flag) {
+                return flag;
+            }
+            await window.Store.Settings.setAutoDownloadVideos(flag);
+            return flag;
+        }, flag);
+    }
 }
 
 module.exports &#x3D; Client;
@@ -1641,7 +1858,7 @@ module.exports &#x3D; Client;
   <footer id="jsdoc-footer" class="jsdoc-footer">
     <div id="jsdoc-footer-container">
       <p>
-        Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> 3.6.11 on October 21, 2023.
+        Generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc</a> 3.6.11 on December 12, 2023.
       </p>
     </div>
   </footer>
