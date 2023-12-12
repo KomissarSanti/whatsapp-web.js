@@ -285,17 +285,12 @@ class Client extends EventEmitter {
 
             //todo
             const handleLinkWithPhoneNumber = async () => {
-                // const LINK_WITH_PHONE_BUTTON = '[data-testid="link-device-qrcode-alt-linking-hint"]';
-                const LINK_WITH_PHONE_BUTTON = '.landing-main > div> div > div:last-child > div';
-                // const PHONE_NUMBER_INPUT = '[data-testid="link-device-phone-number-input"]';
-                const PHONE_NUMBER_INPUT = 'form > input';
-                const NEXT_BUTTON = '[data-testid="link-device-phone-number-entry-next-button"]';
-                // const NEXT_BUTTON = '.landing-main > div> div > div:nth-child(3) > div';
-                const CODE_CONTAINER = '[aria-details="link-device-phone-number-code-screen-instructions"]';
-                // const GENERATE_NEW_CODE_BUTTON = '[data-testid="popup-controls-ok"]';
-                const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role=button]';
-                // const LINK_WITH_PHONE_VIEW = '[data-testid="link-device-phone-number-code-view"]';
-                const LINK_WITH_PHONE_VIEW = '.landing-main > div > div';
+                const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
+                const PHONE_NUMBER_INPUT = 'input[type="text"]';
+                const NEXT_BUTTON = 'div[role="button"] > div > div';
+                const CODE_CONTAINER = 'div[dir="ltr"]';
+                const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
+                const LINK_WITH_PHONE_VIEW = '#app';
 
                 await page.exposeFunction('codeChanged', async (code) => {
                     /**
@@ -369,9 +364,6 @@ class Client extends EventEmitter {
                         return cells.map((cell) => cell.textContent).join('');
                     };
 
-                    var startTime = Date.now();
-
-
                     let code = getCode();
                     window.codeChanged(code);
 
@@ -411,10 +403,10 @@ class Client extends EventEmitter {
 
             const { linkingMethod } = this.options;
 
-            if (linkingMethod.isQR()) {
-                await handleLinkWithQRCode();
-            } else {
+            if (linkingMethod.isPhone()) {
                 await handleLinkWithPhoneNumber();
+            } else {
+                await handleLinkWithQRCode();
             }
 
             // Wait for link success
