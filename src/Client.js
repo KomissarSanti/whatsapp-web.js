@@ -284,132 +284,12 @@ class Client extends EventEmitter {
                 );
             };
 
-            //todo
-            const handleLinkWithPhoneNumber = async () => {
-                const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
-                const PHONE_NUMBER_INPUT = 'input[type="text"]';
-                const NEXT_BUTTON = 'div[role="button"] > div > div';
-                const CODE_CONTAINER = 'div[dir="ltr"]';
-                const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
-                const LINK_WITH_PHONE_VIEW = '#app';
-
-                await page.exposeFunction('codeChanged', async (code) => {
-                    /**
-                     * Emitted when a QR code is received
-                     * @event Client#code
-                     * @param {string} code Code
-                     */
-                    this.emit(Events.CODE_RECEIVED, code);
-                });
-
-                const clickOnLinkWithPhoneButton = async () => {
-                    await page.waitForSelector(LINK_WITH_PHONE_BUTTON, { timeout: 0 });
-                    await page.click(LINK_WITH_PHONE_BUTTON);
-                };
-
-                const typePhoneNumber = async () => {
-                    await page.waitForSelector(PHONE_NUMBER_INPUT);
-                    const inputValue = await page.$eval(PHONE_NUMBER_INPUT, el => el.value);
-                    await page.click(PHONE_NUMBER_INPUT);
-                    for (let i = 0; i < inputValue.length; i++) {
-                        await page.keyboard.press('Backspace');
-                    }
-
-                    await page.type(PHONE_NUMBER_INPUT, this.options.linkingMethod.phone.number);
-                    await page.focus(PHONE_NUMBER_INPUT);
-                    await page.keyboard.press('Enter');
-                };
-
-                await clickOnLinkWithPhoneButton();
-                await typePhoneNumber();
-
-                await page.evaluate(async function (selectors) {
-                    function waitForElementToExist(selector, timeout = 60000) {
-                        return new Promise((resolve, reject) => {
-                            if (document.querySelector(selector)) {
-                                return resolve(document.querySelector(selector));
-                            }
-
-                            const observer = new MutationObserver(() => {
-                                if (document.querySelector(selector)) {
-                                    resolve(document.querySelector(selector));
-                                    observer.disconnect();
-                                }
-                            });
-
-                            observer.observe(document.body, {
-                                subtree: true,
-                                childList: true,
-                            });
-
-                            if (timeout > 0) {
-                                setTimeout(() => {
-                                    console.log(`waitForElementToExist: ${selector} not found in time`);
-                                    reject(
-                                        new Error(
-                                            `waitForElementToExist: ${selector} not found in time`
-                                        )
-                                    );
-                                }, timeout);
-                            }
-                        });
-                    }
-
-                    await waitForElementToExist(selectors.CODE_CONTAINER);
-
-                    const getCode = () => {
-                        const codeContainer = document.querySelector(selectors.CODE_CONTAINER);
-                        const code = Array.from(codeContainer.children)[0];
-
-                        const cells = Array.from(code.children);
-                        return cells.map((cell) => cell.textContent).join('');
-                    };
-
-                    let code = getCode();
-                    window.codeChanged(code);
-
-                    const entirePageObserver = new MutationObserver(() => {
-                        const generateNewCodeButton = document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
-                        if (generateNewCodeButton) {
-                            generateNewCodeButton.click();
-                            return;
-                        }
-                    });
-
-                    entirePageObserver.observe(document, {
-                        subtree: true,
-                        childList: true,
-                    });
-
-                    const linkWithPhoneView = document.querySelector(selectors.LINK_WITH_PHONE_VIEW);
-                    const linkWithPhoneViewObserver = new MutationObserver(() => {
-                        const newCode = getCode();
-
-                        if (newCode !== code) {
-                            window.codeChanged(newCode);
-                            code = newCode;
-                        }
-                    });
-                    linkWithPhoneViewObserver.observe(linkWithPhoneView, {
-                        subtree: true,
-                        childList: true,
-                    });
-
-                }, {
-                    CODE_CONTAINER,
-                    GENERATE_NEW_CODE_BUTTON,
-                    LINK_WITH_PHONE_VIEW
-                });
-            };
-
-            const { linkingMethod } = this.options;
-
-            
-            if (linkingMethod.isPhone()) {
-                await handleLinkWithPhoneNumber();
-            } else {
-                await handleLinkWithQRCode();
-            }
+            // const { linkingMethod } = this.options;
+            // if (linkingMethod.isPhone()) {
+            //     await handleLinkWithPhoneNumber();
+            // } else {
+            await handleLinkWithQRCode();
+            // }
 
             // Wait for link success
             try {
@@ -426,7 +306,6 @@ class Client extends EventEmitter {
 
                 throw error;
             }
-
         }
 
         await page.evaluate(() => {
@@ -900,6 +779,126 @@ class Client extends EventEmitter {
         }
     }
 
+    //todo
+    async handleLinkWithPhoneNumber(phone) {
+        const page = this.pupPage;
+        const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
+        const PHONE_NUMBER_INPUT = 'input[type="text"]';
+        const NEXT_BUTTON = 'div[role="button"] > div > div';
+        const CODE_CONTAINER = 'div[dir="ltr"]';
+        const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
+        const LINK_WITH_PHONE_VIEW = '#app';
+
+        await page.exposeFunction('codeChanged', async (code) => {
+            /**
+             * Emitted when a QR code is received
+             * @event Client#code
+             * @param {string} code Code
+             */
+            this.emit(Events.CODE_RECEIVED, code);
+        });
+
+        const clickOnLinkWithPhoneButton = async () => {
+            await page.waitForSelector(LINK_WITH_PHONE_BUTTON, { timeout: 0 });
+            await page.click(LINK_WITH_PHONE_BUTTON);
+        };
+
+        const typePhoneNumber = async () => {
+            await page.waitForSelector(PHONE_NUMBER_INPUT);
+            const inputValue = await page.$eval(PHONE_NUMBER_INPUT, el => el.value);
+            await page.click(PHONE_NUMBER_INPUT);
+            for (let i = 0; i < inputValue.length; i++) {
+                await page.keyboard.press('Backspace');
+            }
+
+            // await page.type(PHONE_NUMBER_INPUT, this.options.linkingMethod.phone.number);
+            await page.type(PHONE_NUMBER_INPUT, phone);
+            await page.focus(PHONE_NUMBER_INPUT);
+            await page.keyboard.press('Enter');
+        };
+
+        await clickOnLinkWithPhoneButton();
+        await typePhoneNumber();
+
+        await page.evaluate(async function (selectors) {
+            function waitForElementToExist(selector, timeout = 60000) {
+                return new Promise((resolve, reject) => {
+                    if (document.querySelector(selector)) {
+                        return resolve(document.querySelector(selector));
+                    }
+
+                    const observer = new MutationObserver(() => {
+                        if (document.querySelector(selector)) {
+                            resolve(document.querySelector(selector));
+                            observer.disconnect();
+                        }
+                    });
+
+                    observer.observe(document.body, {
+                        subtree: true,
+                        childList: true,
+                    });
+
+                    if (timeout > 0) {
+                        setTimeout(() => {
+                            console.log(`waitForElementToExist: ${selector} not found in time`);
+                            reject(
+                                new Error(
+                                    `waitForElementToExist: ${selector} not found in time`
+                                )
+                            );
+                        }, timeout);
+                    }
+                });
+            }
+
+            await waitForElementToExist(selectors.CODE_CONTAINER);
+
+            const getCode = () => {
+                const codeContainer = document.querySelector(selectors.CODE_CONTAINER);
+                const code = Array.from(codeContainer.children)[0];
+
+                const cells = Array.from(code.children);
+                return cells.map((cell) => cell.textContent).join('');
+            };
+
+            let code = getCode();
+            window.codeChanged(code);
+
+            const entirePageObserver = new MutationObserver(() => {
+                const generateNewCodeButton = document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
+                if (generateNewCodeButton) {
+                    generateNewCodeButton.click();
+                    return;
+                }
+            });
+
+            entirePageObserver.observe(document, {
+                subtree: true,
+                childList: true,
+            });
+
+            const linkWithPhoneView = document.querySelector(selectors.LINK_WITH_PHONE_VIEW);
+            const linkWithPhoneViewObserver = new MutationObserver(() => {
+                const newCode = getCode();
+
+                if (newCode !== code) {
+                    window.codeChanged(newCode);
+                    code = newCode;
+                }
+            });
+            linkWithPhoneViewObserver.observe(linkWithPhoneView, {
+                subtree: true,
+                childList: true,
+            });
+
+        }, {
+            CODE_CONTAINER,
+            GENERATE_NEW_CODE_BUTTON,
+            LINK_WITH_PHONE_VIEW
+        });
+    }
+    
     /**
      * Closes the client
      */
