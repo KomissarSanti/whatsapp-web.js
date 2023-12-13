@@ -38,6 +38,9 @@ declare namespace WAWebJS {
         /** Creates a new group */
         createGroup(title: string, participants?: string | Contact | Contact[] | string[], options?: CreateGroupOptions): Promise<CreateGroupResult|string>
 
+        /** Запросить код для телефона с WA */
+        handlePhoneCode(phone: string): Promise<void>
+        
         /** Closes the client */
         destroy(): Promise<void>
 

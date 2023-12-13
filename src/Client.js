@@ -779,8 +779,14 @@ class Client extends EventEmitter {
         }
     }
 
-    //todo
-    async handleLinkWithPhoneNumber(phone) {
+    /**
+     * Запросить код для телефона, связанного с WA
+     * 
+     * @param {string} phone Телефон, для которого делается запрос
+     * 
+     * @return {Promise<void>}
+     */
+    async handlePhoneCode(phone) {
         const page = this.pupPage;
         const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
         const PHONE_NUMBER_INPUT = 'input[type="text"]';
@@ -923,10 +929,6 @@ class Client extends EventEmitter {
         }
         
         await this.authStrategy.logout();
-    }
-
-    async getPhoneCode() {
-
     }
 
     /**
