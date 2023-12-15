@@ -776,6 +776,7 @@ class Client extends EventEmitter {
                                 mut.type === 'attributes' &&
                                 mut.attributeName === 'data-ref'
                             ) {
+                                console.log('QR Observer', mut.target);
                                 window.qrChanged(mut.target.dataset.ref);
                             }
                             // Listens to retry button, when found, click it
@@ -824,15 +825,17 @@ class Client extends EventEmitter {
                         })
                     ;
                 })
-                .catch(() => {
-                    console.log('ERRORRRRR REVERT');
+                .catch((err) => {
+                    console.log('ERRORRRRR REVERT', err);
                     return false;
                 });
             
-            return;
+            return true;
         }
         
         qrListenerRun();
+        
+        return false;
     }
     
     /**
@@ -857,6 +860,8 @@ class Client extends EventEmitter {
         const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
         const LINK_WITH_PHONE_VIEW = '#app';
         const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
+        const ERROR_BLOCK = '#link-device-phone-number-entry-screen-error';
+        const REVERT_TO_QR_BUTTON = 'span[role="button"]';
 
         let hasCodeChanged = await page.evaluate(() => {return window.codeChanged;});
         if (!hasCodeChanged) {
@@ -870,6 +875,7 @@ class Client extends EventEmitter {
             });
         }
         
+        let hasError  = false;
         let hasQrCode = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
         if (!hasQrCode) {
             return;
@@ -887,7 +893,8 @@ class Client extends EventEmitter {
                 })
                 .catch(() => {
                     return false;
-                });
+                })
+            ;
         };
         
         const typePhoneNumber = async () => {
@@ -902,11 +909,8 @@ class Client extends EventEmitter {
             await page.focus(PHONE_NUMBER_INPUT);
             await page.keyboard.press('Enter');
         };
-
-        const responseClick = await clickOnLinkWithPhoneButton();
-        if (responseClick) {
-            await typePhoneNumber();
-
+        
+        const codeListenerHandler = async () => {
             await page.evaluate(async function (selectors) {
                 function waitForElementToExist(selector, timeout = 60000) {
                     return new Promise((resolve, reject) => {
@@ -942,11 +946,17 @@ class Client extends EventEmitter {
                 await waitForElementToExist(selectors.CODE_CONTAINER);
 
                 const getCode = () => {
-                    const codeContainer = document.querySelector(selectors.CODE_CONTAINER);
-                    const code = Array.from(codeContainer.children)[0];
+                    const phoneInput = document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
 
-                    const cells = Array.from(code.children);
-                    return cells.map((cell) => cell.textContent).join('');
+                    if (!phoneInput) {
+                        const codeContainer = document.querySelector(selectors.CODE_CONTAINER);
+                        const code = Array.from(codeContainer.children)[0];
+
+                        const cells = Array.from(code.children);
+                        return cells.map((cell) => cell.textContent).join('');
+                    }
+                    
+                    return null;
                 };
 
                 let code = getCode();
@@ -983,8 +993,35 @@ class Client extends EventEmitter {
                 CODE_CONTAINER,
                 GENERATE_NEW_CODE_BUTTON,
                 LINK_WITH_PHONE_VIEW,
+                PHONE_NUMBER_INPUT,
                 INTRO_QRCODE_SELECTOR
             });
+        };
+        
+        const responseClick = await clickOnLinkWithPhoneButton();
+        if (responseClick) {
+            await typePhoneNumber();
+
+            hasError = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.ERROR_BLOCK));}, {ERROR_BLOCK});
+            console.log('hasErr', hasError);
+            
+            //
+            if (!hasError) {
+                await codeListenerHandler();
+            }
+            else {
+                /**
+                 * Emitted when a switched auth mode
+                 * @event Client#auth_mode
+                 * @param {string} mode auth mode
+                 */
+                this.emit(Events.AUTH_MODE, 'qrCode');
+
+                await page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0});
+                await page.click(REVERT_TO_QR_BUTTON);
+
+                throw new Error('invalid phone number');
+            }
         }
     }
     
