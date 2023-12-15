@@ -728,76 +728,121 @@ class Client extends EventEmitter {
         
         const page = this.pupPage;
 
+        const PHONE_CODE_CONTAINER = 'div[dir="ltr"]';
+        const REVERT_TO_PHONE_FORM_BUTTON = 'strong + a[role="button"]';
+        const PHONE_NUMBER_INPUT = 'input[type="text"]';
+        const REVERT_TO_QR_BUTTON = 'span[role="button"]';
         const QR_CONTAINER = 'div[data-ref]';
+        const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
         const QR_RETRY_BUTTON = 'div[data-ref] > span > button';
+
         let qrRetries = 0;
-        await page.exposeFunction('qrChanged', async (qr) => {
-            /**
-             * Emitted when a QR code is received
-             * @event Client#qr
-             * @param {string} qr QR Code
-             */
-            this.emit(Events.QR_RECEIVED, qr);
-            if (this.options.linkingMethod.qr.maxRetries > 0) {
-                qrRetries++;
-                if (qrRetries > this.options.linkingMethod.qr.maxRetries) {
-                    this.emit(
-                        Events.DISCONNECTED,
-                        'Max qrcode retries reached'
-                    );
-                    await this.destroy();
+        let hasQrChanged = await page.evaluate(() => {return window.qrChanged;});
+        if (!hasQrChanged) {
+            await page.exposeFunction('qrChanged', async (qr) => {
+                /**
+                 * Emitted when a QR code is received
+                 * @event Client#qr
+                 * @param {string} qr QR Code
+                 */
+                this.emit(Events.QR_RECEIVED, qr);
+                if (this.options.linkingMethod.qr && this.options.linkingMethod.qr.maxRetries > 0) {
+                    qrRetries++;
+                    if (qrRetries > this.options.linkingMethod.qr.maxRetries) {
+                        this.emit(
+                            Events.DISCONNECTED,
+                            'Max qrcode retries reached'
+                        );
+                        await this.destroy();
+                    }
                 }
-            }
-        });
+            });
+        }
 
-        await page.evaluate(
-            function (selectors) {
-                const qr_container = document.querySelector(
-                    selectors.QR_CONTAINER
-                );
-                window.qrChanged(qr_container.dataset.ref);
+        const qrListenerRun = async () => {
+            console.log('QR LISTEN');
 
-                const obs = new MutationObserver((muts) => {
-                    muts.forEach((mut) => {
-                        // Listens to qr token change
-                        if (
-                            mut.type === 'attributes' &&
-                            mut.attributeName === 'data-ref'
-                        ) {
-                            window.qrChanged(mut.target.dataset.ref);
-                        }
-                        // Listens to retry button, when found, click it
-                        else if (mut.type === 'childList') {
-                            const retry_button = document.querySelector(
-                                selectors.QR_RETRY_BUTTON
-                            );
-                            if (retry_button) retry_button.click();
-                        }
+            await page.evaluate(
+                function (selectors) {
+                    const qr_container = document.querySelector(
+                        selectors.QR_CONTAINER
+                    );
+                    window.qrChanged(qr_container.dataset.ref);
+
+                    const obs = new MutationObserver((muts) => {
+                        muts.forEach((mut) => {
+                            // Listens to qr token change
+                            if (
+                                mut.type === 'attributes' &&
+                                mut.attributeName === 'data-ref'
+                            ) {
+                                window.qrChanged(mut.target.dataset.ref);
+                            }
+                            // Listens to retry button, when found, click it
+                            else if (mut.type === 'childList') {
+                                const retry_button = document.querySelector(
+                                    selectors.QR_RETRY_BUTTON
+                                );
+                                if (retry_button) retry_button.click();
+                            }
+                        });
                     });
+                    obs.observe(qr_container.parentElement, {
+                        subtree: true,
+                        childList: true,
+                        attributes: true,
+                        attributeFilter: ['data-ref'],
+                    });
+                },
+                {
+                    QR_CONTAINER,
+                    QR_RETRY_BUTTON,
+                }
+            );
+        };
+        
+        let hasQrCode = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
+        if (!hasQrCode) {
+            await Promise.all([
+                page.waitForSelector(REVERT_TO_PHONE_FORM_BUTTON, {timeout: 0}),
+                page.waitForSelector(PHONE_CODE_CONTAINER, {timeout: 0}),
+            ])
+                .then(async () => {
+                    await page.click(REVERT_TO_PHONE_FORM_BUTTON);
+
+                    await Promise.all([
+                        page.waitForSelector(PHONE_NUMBER_INPUT, {timeout: 0}),
+                        page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0}),
+                    ])
+                        .then(async () => {
+                            await page.click(REVERT_TO_QR_BUTTON);
+                            await page.waitForSelector(INTRO_QRCODE_SELECTOR);
+                            
+                            qrListenerRun();
+                            
+                            return true;
+                        })
+                    ;
+                })
+                .catch(() => {
+                    console.log('ERRORRRRR REVERT');
+                    return false;
                 });
-                obs.observe(qr_container.parentElement, {
-                    subtree: true,
-                    childList: true,
-                    attributes: true,
-                    attributeFilter: ['data-ref'],
-                });
-            },
-            {
-                QR_CONTAINER,
-                QR_RETRY_BUTTON,
-            }
-        );
+            
+            return;
+        }
+        
+        qrListenerRun();
     }
     
     /**
-     * Запросить код для телефона, связанного с WA
+     * Phone code request
      * 
-     * @param {string} phone Телефон, для которого делается запрос
+     * @param {string} phone phone
      * 
      * @return {Promise<void>}
      */
     async handlePhoneCode(phone) {
-
         /**
          * Emitted when a switched auth mode
          * @event Client#auth_mode
@@ -808,7 +853,6 @@ class Client extends EventEmitter {
         const page = this.pupPage;
         const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
         const PHONE_NUMBER_INPUT = 'input[type="text"]';
-        const NEXT_BUTTON = 'div[role="button"] > div > div';
         const CODE_CONTAINER = 'div[dir="ltr"]';
         const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
         const LINK_WITH_PHONE_VIEW = '#app';
@@ -833,19 +877,15 @@ class Client extends EventEmitter {
 
         const clickOnLinkWithPhoneButton = async () => {
             return await Promise.all([
-                page.waitForSelector(LINK_WITH_PHONE_BUTTON, {timeout: 1}),
-                page.waitForSelector(INTRO_QRCODE_SELECTOR, {timeout: 1}),
+                page.waitForSelector(LINK_WITH_PHONE_BUTTON, {timeout: 0}),
+                page.waitForSelector(INTRO_QRCODE_SELECTOR, {timeout: 0}),
             ])
                 .then(async () => {
                     await page.click(LINK_WITH_PHONE_BUTTON);
-
-                    console.log('SUCCESS');
                     
                     return true;
                 })
-                .catch((reason) => {
-                    console.log('ERRRRRRRR', reason);
-
+                .catch(() => {
                     return false;
                 });
         };
@@ -858,8 +898,7 @@ class Client extends EventEmitter {
                 await page.keyboard.press('Backspace');
             }
 
-            // await page.type(PHONE_NUMBER_INPUT, this.options.linkingMethod.phone.number);
-            await page.type(PHONE_NUMBER_INPUT, phone, {delay: 100});
+            await page.type(PHONE_NUMBER_INPUT, phone, {delay: 50});
             await page.focus(PHONE_NUMBER_INPUT);
             await page.keyboard.press('Enter');
         };
