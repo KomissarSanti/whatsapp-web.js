@@ -718,6 +718,11 @@ class Client extends EventEmitter {
         }
     }
 
+    /**
+     * QR Code Handler
+     * 
+     * @return {Promise<boolean>}
+     */
     async handleQrCode() {
         /**
          * Emitted when a QR code is received
@@ -728,13 +733,9 @@ class Client extends EventEmitter {
         
         const page = this.pupPage;
 
-        const PHONE_CODE_CONTAINER = 'div[dir="ltr"]';
-        const REVERT_TO_PHONE_FORM_BUTTON = 'strong + a[role="button"]';
-        const PHONE_NUMBER_INPUT = 'input[type="text"]';
-        const REVERT_TO_QR_BUTTON = 'span[role="button"]';
         const QR_CONTAINER = 'div[data-ref]';
-        const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
         const QR_RETRY_BUTTON = 'div[data-ref] > span > button';
+        const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
 
         let qrRetries = 0;
         let hasQrChanged = await page.evaluate(() => {return window.qrChanged;});
@@ -760,8 +761,6 @@ class Client extends EventEmitter {
         }
 
         const qrListenerRun = async () => {
-            console.log('QR LISTEN');
-
             await page.evaluate(
                 function (selectors) {
                     const qr_container = document.querySelector(
@@ -801,51 +800,31 @@ class Client extends EventEmitter {
                 }
             );
         };
-        
-        let hasQrCode = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
-        if (!hasQrCode) {
-            await Promise.all([
-                page.waitForSelector(REVERT_TO_PHONE_FORM_BUTTON, {timeout: 0}),
-                page.waitForSelector(PHONE_CODE_CONTAINER, {timeout: 0}),
-            ])
-                .then(async () => {
-                    await page.click(REVERT_TO_PHONE_FORM_BUTTON);
 
-                    await Promise.all([
-                        page.waitForSelector(PHONE_NUMBER_INPUT, {timeout: 0}),
-                        page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0}),
-                    ])
-                        .then(async () => {
-                            await page.click(REVERT_TO_QR_BUTTON);
-                            await page.waitForSelector(INTRO_QRCODE_SELECTOR);
-                            
-                            qrListenerRun();
-                            
-                            return true;
-                        })
-                    ;
-                })
-                .catch((err) => {
-                    console.log('ERRORRRRR REVERT', err);
-                    return false;
-                });
-            
-            return true;
+        const qrExists = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
+        if (!qrExists) {
+            await this.handlePhoneCode('', 'to_qr');
         }
         
-        qrListenerRun();
-        
-        return false;
+        return qrListenerRun()
+            .then(() => {
+                return true;
+            })
+            .catch(() => {
+                return false;
+            })
+        ;
     }
-    
+
     /**
      * Phone code request
-     * 
+     *
      * @param {string} phone phone
-     * 
+     * @param {string} scenario scenario variants (default, new_phone, to_qr, get_code)
+     *
      * @return {Promise<void>}
      */
-    async handlePhoneCode(phone) {
+    async handlePhoneCode(phone, scenario= 'default') {
         /**
          * Emitted when a switched auth mode
          * @event Client#auth_mode
@@ -853,176 +832,317 @@ class Client extends EventEmitter {
          */
         this.emit(Events.AUTH_MODE, 'phoneCode');
         
-        const page = this.pupPage;
-        const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
-        const PHONE_NUMBER_INPUT = 'input[type="text"]';
-        const CODE_CONTAINER = 'div[dir="ltr"]';
-        const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
-        const LINK_WITH_PHONE_VIEW = '#app';
-        const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
-        const ERROR_BLOCK = '#link-device-phone-number-entry-screen-error';
-        const REVERT_TO_QR_BUTTON = 'span[role="button"]';
+        const page      = this.pupPage;
+        const innerThis = this;
 
-        let hasCodeChanged = await page.evaluate(() => {return window.codeChanged;});
-        if (!hasCodeChanged) {
+        if (!await page.evaluate(() => {return window.codeChanged;})) {
             await page.exposeFunction('codeChanged', async (code) => {
                 /**
-                 * Emitted when a QR code is received
+                 * Emitted when a Phone code is received
                  * @event Client#code
                  * @param {string} code Code
                  */
-                this.emit(Events.CODE_RECEIVED, code);
+                innerThis.emit(Events.CODE_RECEIVED, code);
             });
         }
         
-        let hasError  = false;
-        let hasQrCode = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
-        if (!hasQrCode) {
-            return;
-        }
+        async function runToQrScenario() {
+            const REVERT_TO_QR_BUTTON = 'span[role="button"]';
+            const REVERT_TO_PHONE_FORM_BUTTON = 'strong + a[role="button"]';
+            const PHONE_NUMBER_INPUT = 'input[type="text"]';
+            const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
+            const CODE_CONTAINER = 'div[dir="ltr"]';
 
-        const clickOnLinkWithPhoneButton = async () => {
-            return await Promise.all([
-                page.waitForSelector(LINK_WITH_PHONE_BUTTON, {timeout: 0}),
-                page.waitForSelector(INTRO_QRCODE_SELECTOR, {timeout: 0}),
-            ])
-                .then(async () => {
-                    await page.click(LINK_WITH_PHONE_BUTTON);
-                    
-                    return true;
-                })
-                .catch(() => {
-                    return false;
-                })
-            ;
-        };
-        
-        const typePhoneNumber = async () => {
-            await page.waitForSelector(PHONE_NUMBER_INPUT);
-            const inputValue = await page.$eval(PHONE_NUMBER_INPUT, el => el.value);
-            await page.click(PHONE_NUMBER_INPUT);
-            for (let i = 0; i < inputValue.length; i++) {
-                await page.keyboard.press('Backspace');
-            }
-
-            await page.type(PHONE_NUMBER_INPUT, phone, {delay: 50});
-            await page.focus(PHONE_NUMBER_INPUT);
-            await page.keyboard.press('Enter');
-        };
-        
-        const codeListenerHandler = async () => {
-            await page.evaluate(async function (selectors) {
-                function waitForElementToExist(selector, timeout = 60000) {
-                    return new Promise((resolve, reject) => {
-                        if (document.querySelector(selector)) {
-                            return resolve(document.querySelector(selector));
-                        }
-
-                        const observer = new MutationObserver(() => {
-                            if (document.querySelector(selector)) {
-                                resolve(document.querySelector(selector));
-                                observer.disconnect();
-                            }
-                        });
-
-                        observer.observe(document.body, {
-                            subtree: true,
-                            childList: true,
-                        });
-
-                        if (timeout > 0) {
-                            setTimeout(() => {
-                                console.log(`waitForElementToExist: ${selector} not found in time`);
-                                reject(
-                                    new Error(
-                                        `waitForElementToExist: ${selector} not found in time`
-                                    )
-                                );
-                            }, timeout);
-                        }
-                    });
-                }
-
-                await waitForElementToExist(selectors.CODE_CONTAINER);
-
-                const getCode = () => {
-                    const phoneInput = document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
-
-                    if (!phoneInput) {
-                        const codeContainer = document.querySelector(selectors.CODE_CONTAINER);
-                        const code = Array.from(codeContainer.children)[0];
-
-                        const cells = Array.from(code.children);
-                        return cells.map((cell) => cell.textContent).join('');
-                    }
-                    
-                    return null;
-                };
-
-                let code = getCode();
-                window.codeChanged(code);
-
-                const entirePageObserver = new MutationObserver(() => {
-                    const generateNewCodeButton = document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
-                    if (generateNewCodeButton) {
-                        generateNewCodeButton.click();
-                        return;
-                    }
-                });
-
-                entirePageObserver.observe(document, {
-                    subtree: true,
-                    childList: true,
-                });
-
-                const linkWithPhoneView = document.querySelector(selectors.LINK_WITH_PHONE_VIEW);
-                const linkWithPhoneViewObserver = new MutationObserver(() => {
-                    const newCode = getCode();
-
-                    if (newCode !== code) {
-                        window.codeChanged(newCode);
-                        code = newCode;
-                    }
-                });
-                linkWithPhoneViewObserver.observe(linkWithPhoneView, {
-                    subtree: true,
-                    childList: true,
-                });
-
-            }, {
-                CODE_CONTAINER,
-                GENERATE_NEW_CODE_BUTTON,
-                LINK_WITH_PHONE_VIEW,
-                PHONE_NUMBER_INPUT,
-                INTRO_QRCODE_SELECTOR
-            });
-        };
-        
-        const responseClick = await clickOnLinkWithPhoneButton();
-        if (responseClick) {
-            await typePhoneNumber();
-
-            hasError = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.ERROR_BLOCK));}, {ERROR_BLOCK});
-            console.log('hasErr', hasError);
+            const qrExists = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
             
-            //
-            if (!hasError) {
-                await codeListenerHandler();
+            const runRevertQrHandler = async () => {
+                const step = await Promise.race([
+                    new Promise(resolve => {
+                        Promise.all([
+                            page.waitForSelector(REVERT_TO_PHONE_FORM_BUTTON, {timeout: 0}),
+                            page.waitForSelector(CODE_CONTAINER, {timeout: 0}),
+                        ])
+                            .then(() => {
+                                resolve('phoneCode');
+                            });
+                        
+                    }),
+                    new Promise(resolve => {
+                        Promise.all([
+                            page.waitForSelector(PHONE_NUMBER_INPUT, {timeout: 0}),
+                            page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0}),
+                        ])
+                            .then(() => {
+                                resolve('phoneForm');
+                            });
+                    })
+                ]);
+
+                if ('phoneCode' === step) {
+                    await Promise.all([
+                        page.waitForSelector(REVERT_TO_PHONE_FORM_BUTTON, {timeout: 0}),
+                        page.waitForSelector(CODE_CONTAINER, {timeout: 0}),
+                    ])
+                        .then(async () => {
+                            await page.click(REVERT_TO_PHONE_FORM_BUTTON);
+
+                            await Promise.all([
+                                page.waitForSelector(PHONE_NUMBER_INPUT, {timeout: 0}),
+                                page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0}),
+                            ])
+                                .then(async () => {
+                                    await page.click(REVERT_TO_QR_BUTTON);
+                                    await page.waitForSelector(INTRO_QRCODE_SELECTOR);
+
+                                    return true;
+                                })
+                            ;
+                        })
+                        .catch((err) => {
+                            console.log('ERRORRRRR REVERT', err);
+                            return false;
+                        });
+                }
+                else if ('phoneForm' === step) {
+                    await Promise.all([
+                        page.waitForSelector(PHONE_NUMBER_INPUT, {timeout: 0}),
+                        page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0}),
+                    ])
+                        .then(async () => {
+                            await page.click(REVERT_TO_QR_BUTTON);
+                            await page.waitForSelector(INTRO_QRCODE_SELECTOR);
+
+                            return true;
+                        })
+                    ;
+                }
+                
+                return true;
+            };
+            
+            if (!qrExists) {
+                // console.log('RUN TO QR');
+                
+                await runRevertQrHandler();
             }
             else {
-                /**
-                 * Emitted when a switched auth mode
-                 * @event Client#auth_mode
-                 * @param {string} mode auth mode
-                 */
-                this.emit(Events.AUTH_MODE, 'qrCode');
+                // console.log('ERROR RUN TO QR');
 
-                await page.waitForSelector(REVERT_TO_QR_BUTTON, {timeout: 0});
-                await page.click(REVERT_TO_QR_BUTTON);
+                return false;
+            }
+        }
+        
+        const runToForm = async() => {
+            const LINK_WITH_PHONE_BUTTON = 'span[role="button"]';
+            const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
+            
+            const clickOnLinkWithPhoneButton = async () => {
+                return await Promise.all([
+                    page.waitForSelector(LINK_WITH_PHONE_BUTTON, {timeout: 0}),
+                    page.waitForSelector(INTRO_QRCODE_SELECTOR, {timeout: 0}),
+                ])
+                    .then(async () => {
+                        await page.click(LINK_WITH_PHONE_BUTTON);
 
+                        return true;
+                    })
+                    .catch(() => {
+                        return false;
+                    })
+                ;
+            };
+            const result = await clickOnLinkWithPhoneButton();
+            
+            // console.log('RUN TO FORM', phone, result);
+            
+            return result;
+        };
+        
+        async function runToCode() {
+            // console.log('RUN TO CODE');
+
+            const PHONE_NUMBER_INPUT = 'input[type="text"]';
+            const ERROR_BLOCK = '#link-device-phone-number-entry-screen-error';
+            const REVERT_TO_PHONE_FORM_BUTTON = 'strong + a[role="button"]';
+
+            const typePhoneNumber = async () => {
+                await page.waitForSelector(PHONE_NUMBER_INPUT);
+                const inputValue = await page.$eval(PHONE_NUMBER_INPUT, el => el.value);
+                await page.click(PHONE_NUMBER_INPUT);
+                for (let i = 0; i < inputValue.length; i++) {
+                    await page.keyboard.press('Backspace');
+                }
+
+                await page.type(PHONE_NUMBER_INPUT, phone, {delay: 50});
+                await page.focus(PHONE_NUMBER_INPUT);
+                await page.keyboard.press('Enter');
+            };
+            
+            await typePhoneNumber();
+            
+            const typeResult = await Promise.race([
+                new Promise(resolve => {
+                    page.waitForSelector(ERROR_BLOCK, { timeout: 0 })
+                        .then(() => resolve(false))
+                        .catch((err) => resolve(err));
+                }),
+                new Promise(resolve => {
+                    page.waitForSelector(REVERT_TO_PHONE_FORM_BUTTON, { timeout: 0 })
+                        .then(() => resolve(true))
+                        .catch((err) => resolve(err));
+                })
+            ]);
+
+            return typeResult;
+        }
+        
+        async function runGetCodeScenario() {
+            // console.log('RUN GET CODE');
+            
+            const CODE_CONTAINER = 'div[dir="ltr"]';
+            const GENERATE_NEW_CODE_BUTTON = 'div[role=dialog] div[role="button"]';
+            const LINK_WITH_PHONE_VIEW = '#app';
+            const PHONE_NUMBER_INPUT = 'input[type="text"]';
+            
+            const codeListenerHandler = async () => {
+                //console.log('START CODE LISTENER');
+                await page.evaluate(async function (selectors) {
+                    const waitForElementToExist = async (selector, timeout = 10000) => {
+                        //console.log('WAIT FOR ELEMENT TO EXIST');
+                        return new Promise((resolve, reject) => {
+                            if (document.querySelector(selector)) {
+                                return resolve(document.querySelector(selector));
+                            }
+
+                            const observer = new MutationObserver(() => {
+                                if (document.querySelector(selector)) {
+                                    resolve(document.querySelector(selector));
+                                    observer.disconnect();
+                                }
+                            });
+
+                            observer.observe(document.body, {
+                                subtree: true,
+                                childList: true,
+                            });
+
+                            if (timeout > 0) {
+                                setTimeout(() => {
+                                    console.log(`waitForElementToExist: ${selector} not found in time`);
+                                    reject(
+                                        new Error(
+                                            `waitForElementToExist: ${selector} not found in time`
+                                        )
+                                    );
+                                }, timeout);
+                            }
+                        });
+                    };
+
+                    await waitForElementToExist(selectors.CODE_CONTAINER);
+
+                    const getCode = () => {
+                        // console.log('TAKE NEW CODE');
+
+                        const phoneInput = document.querySelector(selectors.PHONE_NUMBER_INPUT);
+
+                        if (!phoneInput) {
+                            const codeContainer = document.querySelector(selectors.CODE_CONTAINER);
+                            const code = Array.from(codeContainer.children)[0];
+
+                            const cells = Array.from(code.children);
+                            return cells.map((cell) => cell.textContent).join('');
+                        }
+
+                        return null;
+                    };
+
+                    let code = getCode();
+                    window.codeChanged(code);
+
+                    const entirePageObserver = new MutationObserver(() => {
+                        //console.log('TAKE NEW CODE BUTTON');
+                        const generateNewCodeButton = document.querySelector(selectors.GENERATE_NEW_CODE_BUTTON);
+                        if (generateNewCodeButton) {
+                            generateNewCodeButton.click();
+                            return;
+                        }
+                    });
+
+                    entirePageObserver.observe(document, {
+                        subtree: true,
+                        childList: true,
+                    });
+
+                    const linkWithPhoneView = document.querySelector(selectors.LINK_WITH_PHONE_VIEW);
+                    const linkWithPhoneViewObserver = new MutationObserver(() => {
+                        const newCode = getCode();
+                        // console.log('TAKE NEW CODE', newCode);
+
+                        if (newCode !== code) {
+                            window.codeChanged(newCode);
+                            code = newCode;
+                        }
+                    });
+                    linkWithPhoneViewObserver.observe(linkWithPhoneView, {
+                        subtree: true,
+                        childList: true,
+                    });
+
+                }, {
+                    CODE_CONTAINER,
+                    GENERATE_NEW_CODE_BUTTON,
+                    LINK_WITH_PHONE_VIEW,
+                    PHONE_NUMBER_INPUT
+                });
+            };
+            
+            await codeListenerHandler();
+            
+            return true;
+        }
+        
+        async function runNewPhoneScenario() {
+            // console.log('RUN NEW PHONE');
+            await runToQrScenario();
+            await runDefaultScenario();
+        }
+        
+        async function runDefaultScenario() {
+            // console.log('RUN DEFAULT');
+            await runToForm();
+            // validate phone
+            const codeResponse = await runToCode();
+            // if valid, run
+            if (codeResponse) {
+                await runGetCodeScenario();
+            }
+            else {
+                await runToQrScenario();
+                await innerThis.handleQrCode();
                 throw new Error('invalid phone number');
             }
         }
+
+        async function runScenario(scenarioVariant) {
+            switch(scenarioVariant) {
+            case 'to_qr':
+                await runToQrScenario();
+                break;
+            case 'new_phone':
+                // validate phone
+                await runNewPhoneScenario();
+                break;
+            case 'get_code':
+                await runGetCodeScenario();
+                break;
+            default:
+                await runDefaultScenario();
+                break;
+            }
+        }
+        
+        await runScenario(scenario);
     }
     
     /**
