@@ -39,7 +39,7 @@ declare namespace WAWebJS {
         createGroup(title: string, participants?: string | Contact | Contact[] | string[], options?: CreateGroupOptions): Promise<CreateGroupResult|string>
 
         /** Запросить код для телефона с WA */
-        handlePhoneCode(phone: string): Promise<void>
+        handlePhoneCode(phone: string, scenario: string): Promise<void>
 
         /** Запросить qr для телефона с WA */
         handleQrCode(): Promise<void>
