@@ -42,6 +42,7 @@ class LocalWebCache extends WebCache {
             version = indexHtml.match(/manifest-([\d\\.]+)\.json/)[1];
         }
         else {
+            console.log('indexhtml', indexHtml);
             version = lastVersion;
         }
         
