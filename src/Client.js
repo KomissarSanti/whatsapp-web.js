@@ -149,9 +149,12 @@ class Client extends EventEmitter {
                 };
             });
 
+            const expireDate = Math.floor(Date.now() / 1000) + (60 * 24 * 60 * 60);
             const cookies = [{
                 'name': 'wa_build',
-                'value': 'w'
+                'value': 'w',
+                'domain': '.web.whatsapp.com',
+                'expires': expireDate
             }];
 
             await page.goto(WhatsWebURL, {
