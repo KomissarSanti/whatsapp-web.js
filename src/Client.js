@@ -1,7 +1,5 @@
 'use strict';
 
-import path from "path";
-
 const EventEmitter = require('events');
 const puppeteer = require('puppeteer');
 const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
@@ -18,6 +16,7 @@ const LegacySessionAuth = require('./authStrategies/LegacySessionAuth');
 const NoAuth = require('./authStrategies/NoAuth');
 const LinkingMethod = require('./LinkingMethod');
 import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Starting point for interacting with the WhatsApp Web API
