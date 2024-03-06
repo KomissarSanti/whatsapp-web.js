@@ -160,14 +160,15 @@ class Client extends EventEmitter {
                 'expires': expireDate
             }];
 
-            const fileName = path.basename(request.url());
-            const filePathDist = path.join(
-                path.resolve(__dirname, '../dist/'),
-                fileName
-            );
             
             await page.setRequestInterception(true);
             await page.on('request', (req) => {
+                const fileName = path.basename(req.url());
+                const filePathDist = path.join(
+                    path.resolve(__dirname, '../dist/'),
+                    fileName
+                );
+                
                 // if (String(req.url()).startsWith('https://web.whatsapp.com/')) {
                 if (req.url().includes('dist') && fs.existsSync(filePathDist)) {
                         req.respond({
