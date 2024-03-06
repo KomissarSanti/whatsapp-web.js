@@ -1,5 +1,7 @@
 'use strict';
 
+import path from "path";
+
 const EventEmitter = require('events');
 const puppeteer = require('puppeteer');
 const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
@@ -15,6 +17,7 @@ const { ClientInfo, Message, MessageMedia, Contact, Location, Poll, GroupNotific
 const LegacySessionAuth = require('./authStrategies/LegacySessionAuth');
 const NoAuth = require('./authStrategies/NoAuth');
 const LinkingMethod = require('./LinkingMethod');
+import * as fs from 'fs';
 
 /**
  * Starting point for interacting with the WhatsApp Web API
@@ -157,6 +160,45 @@ class Client extends EventEmitter {
                 'expires': expireDate
             }];
 
+            const fileName = path.basename(request.url());
+            const filePathDist = path.join(
+                path.resolve(__dirname, '../dist/'),
+                fileName
+            );
+            
+            await page.setRequestInterception(true);
+            await page.on('request', (req) => {
+                // if (String(req.url()).startsWith('https://web.whatsapp.com/')) {
+                if (req.url().includes('dist') && fs.existsSync(filePathDist)) {
+                        req.respond({
+                        status: 201,
+                        contentType: 'text/javascript; charset=UTF-8',
+                        body: fs.readFileSync(filePathDist, { encoding: 'utf8' }),
+                    });
+                } else {
+                    req.continue();
+                }
+            });
+
+            page.on('domcontentloaded', async (page) => {
+                await page.addScriptTag({
+                    url: `${WhatsWebURL}dist/wppconnect-wa.js`,
+                });
+            });
+            
+            // await page.route('https://crashlogs.whatsapp.net/**', (route) => {
+            //     route.abort();
+            // });
+            // await page.route('https://dit.whatsapp.net/deidentified_telemetry', (route) => {
+            //     route.abort();
+            // });
+            
+            // await page.on('domcontentloaded', async (page) => {
+            //     await page.addScriptTag({
+            //         url: `${URL}dist/wppconnect-wa.js`,
+            //     });
+            // })
+            //
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
                 timeout: 0,
