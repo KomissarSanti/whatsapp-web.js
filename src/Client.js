@@ -162,25 +162,8 @@ class Client extends EventEmitter {
             }];
 
             // -- intercept for wpp lib
-            WPPGlobal.enableInterceptWPP(page);
-            // await page.setRequestInterception(true);
-            // await page.on('request', (req) => {
-            //     const fileName = path.basename(req.url());
-            //     const filePathDist = path.join(
-            //         path.resolve(__dirname, '../dist/'),
-            //         fileName
-            //     );
-            //
-            //     if (req.url().includes('dist') && fs.existsSync(filePathDist)) {
-            //         req.respond({
-            //             status: 201,
-            //             contentType: 'text/javascript; charset=UTF-8',
-            //             body: fs.readFileSync(filePathDist, { encoding: 'utf8' }),
-            //         });
-            //     } else {
-            //         req.continue();
-            //     }
-            // });
+            await WPPGlobal.bindPage(page);
+            await WPPGlobal.enableInterceptWPP();
             // ---- 
             
             await page.goto(WhatsWebURL, {
@@ -354,9 +337,7 @@ class Client extends EventEmitter {
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
 
             // -- insert wpp global
-            await page.addScriptTag({
-                url: `${WhatsWebURL}dist/wppconnect-wa.js`,
-            });
+            WPPGlobal.addWPPScriptTag();
             // ---- 
 
             /**
@@ -870,7 +851,6 @@ class Client extends EventEmitter {
                                 mut.type === 'attributes' &&
                                 mut.attributeName === 'data-ref'
                             ) {
-                                console.log('QR Observer', mut.target);
                                 window.qrChanged(mut.target.dataset.ref);
                             }
                             // Listens to retry button, when found, click it

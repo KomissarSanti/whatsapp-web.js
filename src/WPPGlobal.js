@@ -1,10 +1,19 @@
 const path = require('path');
 const fs = require('fs');
+const {WhatsWebURL} = require('./util/Constants');
 
 class WPPGlobal {
-    async enableInterceptWPP(page) {
-        await page.setRequestInterception(true);
-        await page.on('request', (req) => {
+    constructor() {
+        this.pupPage = null;
+    }
+    
+    async bindPage(page) {
+        this.pupPage = page;
+    }
+    
+    async enableInterceptWPP() {
+        await this.pupPage.setRequestInterception(true);
+        await this.pupPage.on('request', (req) => {
             const fileName = path.basename(req.url());
             const filePathDist = path.join(
                 path.resolve(__dirname, '../dist/'),
@@ -20,6 +29,12 @@ class WPPGlobal {
             } else {
                 req.continue();
             }
+        });
+    }
+    
+    async addWPPScriptTag() {
+        await this.pupPage.addScriptTag({
+            url: `${WhatsWebURL}dist/wppconnect-wa.js`,
         });
     }
     
@@ -64,4 +79,4 @@ class WPPGlobal {
     }
 }
 
-module.exports = WPPGlobal;
+module.exports = new WPPGlobal;
