@@ -1,8 +1,7 @@
-import path from "path";
-import fs from "fs";
+const path = require('path');
+const fs = require('fs');
 
 class WPPGlobal {
-
     async enableInterceptWPP(page) {
         await page.setRequestInterception(true);
         await page.on('request', (req) => {
