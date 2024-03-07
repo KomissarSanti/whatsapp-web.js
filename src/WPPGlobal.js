@@ -63,3 +63,5 @@ class WPPGlobal {
         
     }
 }
+
+module.exports = WPPGlobal;
