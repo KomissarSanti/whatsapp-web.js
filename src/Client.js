@@ -15,10 +15,6 @@ const { ClientInfo, Message, MessageMedia, Contact, Location, Poll, GroupNotific
 const LegacySessionAuth = require('./authStrategies/LegacySessionAuth');
 const NoAuth = require('./authStrategies/NoAuth');
 const LinkingMethod = require('./LinkingMethod');
-const WPPGlobal = require('./WPPGlobal');
-
-const fs = require('fs');
-const path = require('path');
 
 /**
  * Starting point for interacting with the WhatsApp Web API
@@ -162,8 +158,8 @@ class Client extends EventEmitter {
             }];
 
             // -- intercept for wpp lib
-            await WPPGlobal.bindPage(page);
-            await WPPGlobal.enableInterceptWPP();
+            // await WPPGlobal.bindPage(page);
+            // await WPPGlobal.enableInterceptWPP();
             // ---- 
             
             await page.goto(WhatsWebURL, {
@@ -221,9 +217,13 @@ class Client extends EventEmitter {
                 }
             );
 
+            // -- insert wpp global
+            // WPPGlobal.addWPPScriptTag(); // todo
+            // WPPGlobal.handleEvents(); // todo
+            // ---- 
+            
             const INTRO_IMG_SELECTOR = '[data-icon=\'search\']';
             const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
-
             // Checks which selector appears first
             const needAuthentication = await Promise.race([
                 new Promise(resolve => {
@@ -335,10 +335,6 @@ class Client extends EventEmitter {
 
             await page.evaluate(ExposeStore, moduleRaid.toString());
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
-
-            // -- insert wpp global
-            WPPGlobal.addWPPScriptTag();
-            // ---- 
 
             /**
              * Emitted when authentication is successful
