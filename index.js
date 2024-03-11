@@ -4,6 +4,7 @@ const Constants = require('./src/util/Constants');
 
 module.exports = {
     Client: require('./src/Client'),
+    ClientWPP: require('./src/ClientWPP'),
     
     version: require('./package.json').version,
 
