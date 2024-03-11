@@ -156,11 +156,6 @@ class Client extends EventEmitter {
                 'domain': '.web.whatsapp.com',
                 'expires': expireDate
             }];
-
-            // -- intercept for wpp lib
-            // await WPPGlobal.bindPage(page);
-            // await WPPGlobal.enableInterceptWPP();
-            // ---- 
             
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
@@ -217,11 +212,6 @@ class Client extends EventEmitter {
                 }
             );
 
-            // -- insert wpp global
-            // WPPGlobal.addWPPScriptTag(); // todo
-            // WPPGlobal.handleEvents(); // todo
-            // ---- 
-            
             const INTRO_IMG_SELECTOR = '[data-icon=\'search\']';
             const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
             // Checks which selector appears first
