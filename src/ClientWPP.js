@@ -5,6 +5,7 @@ const puppeteer = require('puppeteer');
 
 const Util = require('./util/Util');
 const { WhatsWebURL, DefaultOptions, Events, WAState } = require('./util/Constants');
+const WebCacheFactory = require('./webCache/WebCacheFactory');
 const WPPGlobal = require('./WPPGlobal');
 
 /**
@@ -99,17 +100,21 @@ class ClientWPP extends EventEmitter {
             this.pupPage = page;
 
             await this.authStrategy.afterBrowserInitialized();
-
-            await page.goto(WhatsWebURL, {
-                waitUntil: 'load',
-                timeout: 0,
-                referer: 'https://whatsapp.com/'
-            });
+            await this.initWebVersionCache();
 
             // -- intercept for wpp lib
             await WPPGlobal.bindPage(page);
             await WPPGlobal.enableInterceptWPP();
-            await WPPGlobal.addWPPScriptTag(); // todo
+            // ----
+
+            await page.goto(WhatsWebURL, {
+                waitUntil: 'domcontentloaded',
+                timeout: 0,
+                referer: 'https://whatsapp.com/'
+            }).then(async () => {
+                await WPPGlobal.addWPPScriptTag(); // todo
+            });
+
             // Check window.Store Injection
             await page.waitForFunction('window.WPP != undefined');
 
@@ -117,7 +122,7 @@ class ClientWPP extends EventEmitter {
                 console.log('emit', event, data);
                 this.emit(event, data);
             });
-            // ---- 
+            // ----
 
             await page.evaluate(async () => {
                 // safely unregister service workers
@@ -133,6 +138,45 @@ class ClientWPP extends EventEmitter {
             return {error};
         }
     } // -- end initialize
+
+    handleQrCode() {
+        return this.pupPage.evaluate(async () => {
+            const code = await window.WPP. conn.getAuthCode();
+
+            console.log(code);
+
+            return code;
+        });
+    }
+
+    async initWebVersionCache() {
+        const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
+        const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
+
+        const requestedVersion = this.options.webVersion;
+        const versionContent = await webCache.resolve(requestedVersion);
+
+        if(versionContent) {
+            await this.pupPage.setRequestInterception(true);
+            this.pupPage.on('request', async (req) => {
+                if(req.url() === WhatsWebURL) {
+                    req.respond({
+                        status: 200,
+                        contentType: 'text/html',
+                        body: versionContent
+                    });
+                } else {
+                    req.continue();
+                }
+            });
+        } else {
+            this.pupPage.on('response', async (res) => {
+                if(res.ok() && res.url() === WhatsWebURL) {
+                    await webCache.persist(await res.text());
+                }
+            });
+        }
+    }
 }
 
 module.exports = ClientWPP;
