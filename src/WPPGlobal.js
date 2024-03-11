@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const {WhatsWebURL} = require('./util/Constants');
+const {WhatsWebURL, Events} = require('./util/Constants');
 
 class WPPGlobal {
     constructor() {
@@ -48,6 +48,8 @@ class WPPGlobal {
                 // window.onChangeMessageEvent(window.WWebJS.getMessageModel(msg));
 
                 console.log('qr', msg);
+                
+                callback(Events.QR_RECEIVED, msg);
             });
         });
     }
