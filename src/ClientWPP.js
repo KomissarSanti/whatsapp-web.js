@@ -105,18 +105,20 @@ class ClientWPP extends EventEmitter {
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
-            
+
             // -- intercept for wpp lib
             await WPPGlobal.bindPage(page);
-            await WPPGlobal.enableInterceptWPP();   
-            WPPGlobal.addWPPScriptTag(); // todo
-            WPPGlobal.handleEvents((event, data) => {
+            await WPPGlobal.enableInterceptWPP();
+            await WPPGlobal.addWPPScriptTag(); // todo
+            // Check window.Store Injection
+            await page.waitForFunction('window.WPP != undefined');
+
+            await WPPGlobal.handleEvents(async (event, data) => {
+                console.log('emit', event, data);
                 this.emit(event, data);
             });
             // ---- 
 
-            // Check window.Store Injection
-            await page.waitForFunction('window.WPP != undefined');
             await page.evaluate(async () => {
                 // safely unregister service workers
                 const registrations = await navigator.serviceWorker.getRegistrations();
