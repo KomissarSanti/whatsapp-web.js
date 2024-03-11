@@ -39,17 +39,17 @@ class WPPGlobal {
     }
     
     /**
-     * Проверка что WPP доступен
-     */
-    checkWPP() {
-        
-    }
-    
-    /**
      * Обработка и подписка на события 
      */
-    handleEvents() {
-        
+    async handleEvents(callback) {
+        await this.pupPage.evaluate(async () => {
+
+            window.WPP.ev.on('conn.auth_code_change', (msg) => {
+                // window.onChangeMessageEvent(window.WWebJS.getMessageModel(msg));
+
+                console.log('qr', msg);
+            });
+        });
     }
     
     /**

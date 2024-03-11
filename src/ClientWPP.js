@@ -110,42 +110,18 @@ class ClientWPP extends EventEmitter {
             await WPPGlobal.bindPage(page);
             await WPPGlobal.enableInterceptWPP();   
             WPPGlobal.addWPPScriptTag(); // todo
-            WPPGlobal.handleEvents(); // todo
+            WPPGlobal.handleEvents((event, data) => {
+                this.emit(event, data);
+            });
             // ---- 
-            
-            const authEventPayload = await this.authStrategy.getAuthEventPayload();
-
-            /**
-             * Emitted when authentication is successful
-             * @event Client#authenticated
-             */
-            this.emit(Events.AUTHENTICATED, authEventPayload);
 
             // Check window.Store Injection
             await page.waitForFunction('window.WPP != undefined');
-
             await page.evaluate(async () => {
                 // safely unregister service workers
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (let registration of registrations) {
                     registration.unregister();
-                }
-            });
-
-            /**
-             * Emitted when the client has initialized and is ready to receive messages.
-             * @event Client#ready
-             */
-            this.emit(Events.READY);
-            this.authStrategy.afterAuthReady();
-
-            // Disconnect when navigating away when in PAIRING state (detect logout)
-            this.pupPage.on('framenavigated', async () => {
-                const appState = await this.getState();
-                if (!appState || appState === WAState.PAIRING) {
-                    await this.authStrategy.disconnect();
-                    this.emit(Events.DISCONNECTED, 'NAVIGATION');
-                    await this.destroy();
                 }
             });
 
