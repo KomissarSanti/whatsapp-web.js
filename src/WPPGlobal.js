@@ -14,11 +14,7 @@ class WPPGlobal {
     async enableInterceptWPP() {
         await this.pupPage.setRequestInterception(true);
         await this.pupPage.on('request', (req) => {
-            const fileName = path.basename(req.url());
-            const filePathDist = path.join(
-                path.resolve(__dirname, '../dist/'),
-                fileName
-            );
+            const filePathDist = require.resolve('@wppconnect/wa-js');
 
             if (req.url().includes('dist') && fs.existsSync(filePathDist)) {
                 req.respond({
@@ -48,7 +44,17 @@ class WPPGlobal {
 
         console.log('handleEvents method');
         
-        await this.pupPage.evaluate((Events) => {
+        await this.pupPage.evaluate(async (Events) => {
+            const isReady = await window.WPP.conn.isMainReady();
+            
+            if (isReady) {
+                window.handleEventsMethod(Events.READY, null);
+            }
+            else {
+                const qr = await window.window.conn.getAuthCode();
+                window.handleEventsMethod(Events.QR_RECEIVED, qr.fullCode);
+            }
+
             window.WPP.ev.on('conn.auth_code_change', (msg) => {
                 window.handleEventsMethod(Events.QR_RECEIVED, msg.fullCode);
             });
