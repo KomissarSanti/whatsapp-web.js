@@ -82,9 +82,6 @@ class ClientWPP extends EventEmitter {
                     browserArgs.push(`--user-agent=${this.options.userAgent}`);
                 }
 
-                // navigator.webdriver fix
-                browserArgs.push('--disable-blink-features=AutomationControlled');
-
                 browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
                 page = (await browser.pages())[0];
             }
@@ -100,11 +97,11 @@ class ClientWPP extends EventEmitter {
             this.pupPage = page;
 
             await this.authStrategy.afterBrowserInitialized();
-            await this.initWebVersionCache();
+            // await this.initWebVersionCache();
 
             // -- intercept for wpp lib
-            await WPPGlobal.bindPage(page);
-            await WPPGlobal.enableInterceptWPP();
+            // await WPPGlobal.bindPage(page);
+            // await WPPGlobal.enableInterceptWPP();
             // ----
 
             await page.goto(WhatsWebURL, {
@@ -112,25 +109,35 @@ class ClientWPP extends EventEmitter {
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             }).then(async () => {
-                await WPPGlobal.addWPPScriptTag(); // todo
+                // await WPPGlobal.addWPPScriptTag(); // todo
             });
 
+            await page.addScriptTag({
+                path: require.resolve('@wppconnect/wa-js'),
+            });
+            
             // Check window.Store Injection
-            await page.waitForFunction('window.WPP != undefined');
+            await page.waitForFunction(() => window.WPP?.isReady);
 
-            await WPPGlobal.handleEvents(async (event, data) => {
-                console.log('emit', event, data);
-                this.emit(event, data);
-            });
+            const isAuthenticated = await page.evaluate(() =>
+                window.WPP.auth.isAuthenticated()
+            );
+            
+            console.log('123', isAuthenticated);
+            
+            // await WPPGlobal.handleEvents(async (event, data) => {
+            //     console.log('emit', event, data);
+            //     this.emit(event, data);
+            // });
             // ----
 
-            await page.evaluate(async () => {
-                // safely unregister service workers
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (let registration of registrations) {
-                    registration.unregister();
-                }
-            });
+            // await page.evaluate(async () => {
+            //     // safely unregister service workers
+            //     const registrations = await navigator.serviceWorker.getRegistrations();
+            //     for (let registration of registrations) {
+            //         registration.unregister();
+            //     }
+            // });
 
             return true;
         }
@@ -141,7 +148,7 @@ class ClientWPP extends EventEmitter {
 
     handleQrCode() {
         return this.pupPage.evaluate(async () => {
-            const code = await window.WPP. conn.getAuthCode();
+            const code = await window.WPP.conn.getAuthCode();
 
             console.log(code);
 
