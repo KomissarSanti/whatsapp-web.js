@@ -82,6 +82,8 @@ class ClientWPP extends EventEmitter {
                 if (!browserArgs.find(arg => arg.includes('--user-agent'))) {
                     browserArgs.push(`--user-agent=${this.options.userAgent}`);
                 }
+                browserArgs.push('--disable-blink-features=AutomationControlled');
+                browserArgs.push('--disable-features=ServiceWorker');
 
                 browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
                 page = (await browser.pages())[0];
@@ -98,19 +100,11 @@ class ClientWPP extends EventEmitter {
             this.pupPage = page;
 
             await this.authStrategy.afterBrowserInitialized();
-            // await this.initWebVersionCache();
 
             // -- intercept for wpp lib
             await WPPGlobal.bindPage(page);
             await WPPGlobal.enableInterceptWPP();
             // ----
-
-            await page.goto(WhatsWebURL, {
-                waitUntil: 'load',
-                timeout: 0,
-                referer: 'https://whatsapp.com/'
-            }).then(async () => {
-            });
 
             const expireDate = Math.floor(Date.now() / 1000) + (60 * 24 * 60 * 60);
             const cookies = [{
@@ -121,98 +115,12 @@ class ClientWPP extends EventEmitter {
             }];
             await page.setCookie(...cookies);
 
-            await page.reload();
-
-            await page.evaluate(`function getElementByXpath(path) {
-            return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-          }`);
-
-            let lastPercent = null,
-                lastPercentMessage = null;
-
-            await page.exposeFunction('loadingScreen', async (percent, message) => {
-                if (lastPercent !== percent || lastPercentMessage !== message) {
-                    this.emit(Events.LOADING_SCREEN, percent, message);
-                    lastPercent = percent;
-                    lastPercentMessage = message;
-                }
+            await page.goto(WhatsWebURL, {
+                waitUntil: 'networkidle0',
+                timeout: 0,
+                referer: 'https://whatsapp.com/'
             });
-
-            await page.evaluate(
-                async function (selectors) {
-                    var observer = new MutationObserver(function () {
-                        let progressBar = window.getElementByXpath(
-                            selectors.PROGRESS
-                        );
-                        let progressMessage = window.getElementByXpath(
-                            selectors.PROGRESS_MESSAGE
-                        );
-
-                        if (progressBar) {
-                            console.log('progressBar', progressBar.value);
-
-                            window.loadingScreen(
-                                progressBar.value,
-                                progressMessage.innerText
-                            );
-                        }
-                    });
-
-                    observer.observe(document, {
-                        attributes: true,
-                        childList: true,
-                        characterData: true,
-                        subtree: true,
-                    });
-                },
-                {
-                    PROGRESS: '//*[@id=\'app\']/div/div/div[2]/progress',
-                    PROGRESS_MESSAGE: '//*[@id=\'app\']/div/div/div[3]',
-                }
-            );
-
-            const INTRO_IMG_SELECTOR = '[data-icon=\'search\']';
-            const INTRO_QRCODE_SELECTOR = 'div[data-ref] canvas';
-            // Checks which selector appears first
-            const needAuthentication = await Promise.race([
-                new Promise(resolve => {
-                    page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: this.options.authTimeoutMs})
-                        .then(() => resolve(false))
-                        .catch((err) => resolve(err));
-                }),
-                new Promise(resolve => {
-                    page.waitForSelector(INTRO_QRCODE_SELECTOR, {timeout: this.options.authTimeoutMs})
-                        .then(() => resolve(true))
-                        .catch((err) => resolve(err));
-                })
-            ]);
-
-            // Checks if an error occurred on the first found selector. The second will be discarded and ignored by .race;
-            if (needAuthentication instanceof Error) throw needAuthentication;
-
-            await page.evaluate(() => {
-                window.globalThis.ErrorGuard.skipGuardGlobal(true);
-            });
-
-            // Scan-qrcode selector was found. Needs authentication
-            if (needAuthentication) {
-                console.log('is not auth');
-
-                // const file = fs.readFileSync('@wppconnect/wa-js/wppconnect-wa.js');
-
-                console.log(require.resolve('@wppconnect/wa-js'));
-                // eval()
-
-                // await page.addScriptTag({
-                //     path: require.resolve('@wppconnect/wa-js'),
-                // });
-            }
-            else {
-                console.log('is auth');
-                // await page.addScriptTag({
-                //     path: require.resolve('@wppconnect/wa-js'),
-                // });
-            }
+            WPPGlobal.addWPPScriptTag();
 
             // Check window.WPP Injection
             await page.waitForFunction(() => window.WPP?.isReady);
@@ -241,40 +149,13 @@ class ClientWPP extends EventEmitter {
     handleQrCode() {
         return this.pupPage.evaluate(async () => {
             const code = await window.WPP.conn.getAuthCode();
-
-            console.log(code);
-
-            return code;
+            
+            if (code) {
+                return code;
+            }
+            
+            return null;
         });
-    }
-
-    async initWebVersionCache() {
-        const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
-        const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
-
-        const requestedVersion = this.options.webVersion;
-        const versionContent = await webCache.resolve(requestedVersion);
-
-        if(versionContent) {
-            await this.pupPage.setRequestInterception(true);
-            this.pupPage.on('request', async (req) => {
-                if(req.url() === WhatsWebURL) {
-                    req.respond({
-                        status: 200,
-                        contentType: 'text/html',
-                        body: versionContent
-                    });
-                } else {
-                    req.continue();
-                }
-            });
-        } else {
-            this.pupPage.on('response', async (res) => {
-                if(res.ok() && res.url() === WhatsWebURL) {
-                    await webCache.persist(await res.text());
-                }
-            });
-        }
     }
 }
 

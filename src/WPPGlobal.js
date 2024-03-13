@@ -51,12 +51,18 @@ class WPPGlobal {
                 window.handleEventsMethod(Events.READY, null);
             }
             else {
-                const qr = await window.window.conn.getAuthCode();
-                window.handleEventsMethod(Events.QR_RECEIVED, qr.fullCode);
+                const qr = await window.WPP.conn.getAuthCode();
+                
+                if (qr) {
+                    window.handleEventsMethod(Events.QR_RECEIVED, qr.fullCode);
+                }
             }
 
+            // -- AUTH 
             window.WPP.ev.on('conn.auth_code_change', (msg) => {
-                window.handleEventsMethod(Events.QR_RECEIVED, msg.fullCode);
+                if (msg) {
+                    window.handleEventsMethod(Events.QR_RECEIVED, msg.fullCode);
+                }
             });
             window.WPP.ev.on('conn.main_loaded', (msg) => {
                 window.handleEventsMethod(Events.AUTHENTICATED, msg);
@@ -67,6 +73,17 @@ class WPPGlobal {
             window.WPP.ev.on('conn.logout', (msg) => {
                 window.handleEventsMethod(Events.DISCONNECTED, msg);
             });
+            // -- -- --
+
+            // -- CHAT
+            window.WPP.ev.on('chat.new_message', (msg) => {                
+                window.handleEventsMethod(Events.MESSAGE_RECEIVED, msg);
+            });
+            window.WPP.ev.on('chat.msg_ack_change', (ack) => {                
+                window.handleEventsMethod(Events.MESSAGE_ACK, ack);
+            });
+            // -- -- --
+            
         }, Events);
     }
 
