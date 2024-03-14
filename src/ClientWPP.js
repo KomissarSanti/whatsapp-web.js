@@ -83,7 +83,7 @@ class ClientWPP extends EventEmitter {
                     browserArgs.push(`--user-agent=${this.options.userAgent}`);
                 }
                 browserArgs.push('--disable-blink-features=AutomationControlled');
-                browserArgs.push('--disable-features=ServiceWorker');
+                // browserArgs.push('--disable-features=ServiceWorker');
 
                 browser = await puppeteer.launch({...puppeteerOpts, args: browserArgs});
                 page = (await browser.pages())[0];
@@ -106,17 +106,8 @@ class ClientWPP extends EventEmitter {
             await WPPGlobal.enableInterceptWPP();
             // ----
 
-            const expireDate = Math.floor(Date.now() / 1000) + (60 * 24 * 60 * 60);
-            const cookies = [{
-                'name': 'wa_build',
-                'value': 'c',
-                'domain': '.web.whatsapp.com',
-                'expires': expireDate
-            }];
-            await page.setCookie(...cookies);
-
             await page.goto(WhatsWebURL, {
-                waitUntil: 'networkidle0',
+                waitUntil: 'domcontentloaded',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
@@ -126,7 +117,6 @@ class ClientWPP extends EventEmitter {
             await page.waitForFunction(() => window.WPP?.isReady);
 
             await WPPGlobal.handleEvents(async (event, data) => {
-                console.log('emit', event, data);
                 this.emit(event, data);
             });
             // ----
@@ -149,13 +139,80 @@ class ClientWPP extends EventEmitter {
     handleQrCode() {
         return this.pupPage.evaluate(async () => {
             const code = await window.WPP.conn.getAuthCode();
-            
+
             if (code) {
                 return code;
             }
-            
+
             return null;
         });
+    }
+
+    sendSeen(chatId) {
+        return this.pupPage.evaluate(async (chatId) => {
+            return await window.WPP.chat.markIsRead(chatId);
+        }, chatId);
+    }
+
+    async sendTextMessage(chatId, body) {
+        return await this.pupPage.evaluate(async (chatId) => {
+            return await window.WPP.chat.sendTextMessage(chatId, body);
+        }, chatId);
+    }
+
+    async sendFileMessage(chatId, type, base64, caption = undefined) {
+        return await this.pupPage.evaluate(async (chatId, base64, type, caption) => {
+            return await window.WPP.chat.sendFileMessage(chatId, base64, {type, caption});
+        }, chatId, base64, type, caption);
+    }
+
+    async getMessage(msgId) {
+        const result = await this.pupPage.evaluate(async (msgId) => {
+            const data = await window.WPP.chat.getMessageById(msgId);
+
+            console.log('in', data);
+
+            return data;
+        }, msgId);
+
+        console.log('out', result);
+
+        return result;
+    }
+
+    async logout() {
+        return await this.pupPage.evaluate(async () => {
+            return await window.WPP.conn.logout();
+        });
+    }
+
+    async getContacts() {
+        const result = await this.pupPage.evaluate(async () => {
+           return window.WPP.contact.list();
+        });
+
+        console.log('ll',result);
+        return result;
+    }
+
+    async sendSeen(chatId) {
+        const result = await this.pupPage.evaluate(async (chatId) => {
+            return window.WWebJS.sendSeen(chatId);
+
+        }, chatId);
+        return result;
+    }
+    
+    async getContact(chatId) {
+        return await this.pupPage.evaluate(async (chatId) => {
+            return await window.WPP.contact.get(chatId);
+        }, chatId);
+    }
+
+    async getProfilePicUrl(chatId) {
+        return await this.pupPage.evaluate(async (chatId) => {
+            return await window.WPP.contact.getProfilePictureUrl(chatId);
+        }, chatId);
     }
 }
 
