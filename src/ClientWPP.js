@@ -187,7 +187,7 @@ class ClientWPP extends EventEmitter {
     }
 
     async getContacts() {
-        const result = await this.pupPage.evaluate(async () => {
+        const result = await this.pupPage.evaluate(() => {
            return window.WPP.contact.list();
         });
 
