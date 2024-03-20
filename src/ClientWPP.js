@@ -118,6 +118,14 @@ class ClientWPP extends EventEmitter {
 
             await WPPGlobal.handleEvents(async (event, data) => {
                 this.emit(event, data);
+
+                // if (Events.READY === event) {
+                //     const result = await this.pupPage.evaluate(() => {
+                //         return window.WPP.contact.list();
+                //     });
+                //
+                //     console.log('ll', result);
+                // }
             });
             // ----
 
@@ -187,12 +195,11 @@ class ClientWPP extends EventEmitter {
     }
 
     async getContacts() {
-        const result = await this.pupPage.evaluate(() => {
-           return window.WPP.contact.list();
+        const result = await this.pupPage.evaluate(async () => {
+           return JSON.stringify(await window.WPP.contact.list());
         });
 
-        console.log('ll',result);
-        return result;
+        return JSON.parse(result);
     }
 
     async sendSeen(chatId) {
