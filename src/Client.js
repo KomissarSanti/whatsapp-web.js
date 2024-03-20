@@ -157,7 +157,7 @@ class Client extends EventEmitter {
                 'domain': '.web.whatsapp.com',
                 'expires': expireDate
             }];
-            await page.setCookie(...cookies);
+            // await page.setCookie(...cookies);
             
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
