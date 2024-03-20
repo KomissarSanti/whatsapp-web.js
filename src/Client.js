@@ -157,15 +157,13 @@ class Client extends EventEmitter {
                 'domain': '.web.whatsapp.com',
                 'expires': expireDate
             }];
+            await page.setCookie(...cookies);
             
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
-            await page.setCookie(...cookies);
-
-            await page.reload();
 
             await page.evaluate(`function getElementByXpath(path) {
             return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
