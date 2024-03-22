@@ -838,6 +838,14 @@ class Client extends EventEmitter {
                             ) {
                                 window.qrChanged(mut.target.dataset.ref);
                             }
+                            else if (mut.addedNodes) {
+                                const ref = mut.addedNodes[0]?.dataset?.ref;
+                                console.log('add', ref);
+
+                                if (ref) {
+                                    window.qrChanged(ref);
+                                }
+                            }
                             // Listens to retry button, when found, click it
                             else if (mut.type === 'childList') {
                                 const retry_button = document.querySelector(
