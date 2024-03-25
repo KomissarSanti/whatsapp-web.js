@@ -159,7 +159,7 @@ class Client extends EventEmitter {
                     'domain': '.web.whatsapp.com',
                     'expires': expireDate
                 }];
-                await page.setCookie(...cookies);
+                await page.setCookie(...cookiesC);
             }
             else {
                 const cookiesW = [{
@@ -168,7 +168,7 @@ class Client extends EventEmitter {
                     'domain': '.web.whatsapp.com',
                     'expires': expireDate
                 }];
-                await page.setCookie(...cookies);
+                await page.setCookie(...cookiesW);
             }
 
             await page.goto(WhatsWebURL, {
