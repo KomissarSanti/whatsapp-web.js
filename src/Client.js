@@ -153,12 +153,18 @@ class Client extends EventEmitter {
             const expireDate = Math.floor(Date.now() / 1000) + (60 * 24 * 60 * 60);
             const cookies = [{
                 'name': 'wa_build',
-                'value': 'w',
+                'value': 'c',
                 'domain': '.web.whatsapp.com',
                 'expires': expireDate
             }];
-            // await page.setCookie(...cookies);
-            
+
+            if (this.options.enableComet) {
+                await page.setCookie(...cookies);
+            }
+            else {
+                await page.deleteCookie({name:'wa_build', domain:'.web.whatsapp.com', path:'/'});
+            }
+
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
                 timeout: 0,
@@ -881,7 +887,7 @@ class Client extends EventEmitter {
             .catch(() => {
                 return false;
             })
-        ;
+            ;
     }
 
     /**
@@ -1017,7 +1023,7 @@ class Client extends EventEmitter {
                     .catch(() => {
                         return false;
                     })
-                ;
+                    ;
             };
             const result = await clickOnLinkWithPhoneButton();
 
@@ -1194,19 +1200,19 @@ class Client extends EventEmitter {
 
         async function runScenario(scenarioVariant) {
             switch(scenarioVariant) {
-            case 'to_qr':
-                await runToQrScenario();
-                break;
-            case 'new_phone':
-                // validate phone
-                await runNewPhoneScenario();
-                break;
-            case 'get_code':
-                await runGetCodeScenario();
-                break;
-            default:
-                await runDefaultScenario();
-                break;
+                case 'to_qr':
+                    await runToQrScenario();
+                    break;
+                case 'new_phone':
+                    // validate phone
+                    await runNewPhoneScenario();
+                    break;
+                case 'get_code':
+                    await runGetCodeScenario();
+                    break;
+                default:
+                    await runDefaultScenario();
+                    break;
             }
         }
 
