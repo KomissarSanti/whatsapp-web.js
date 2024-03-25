@@ -171,7 +171,7 @@ class Client extends EventEmitter {
                 await page.setCookie(...cookiesW);
             }
             else {
-                await page.deleteCookie({name:'wa_build', domain:'.web.whatsapp.com', path:'/'});
+                // await page.deleteCookie({name:'wa_build', domain:'.web.whatsapp.com', path:'/'});
             }
 
             await page.goto(WhatsWebURL, {
