@@ -9,6 +9,7 @@ const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
 const { WhatsWebURL, DefaultOptions, Events, WAState } = require('./util/Constants');
 const { ExposeStore, LoadUtils } = require('./util/Injected');
+const { ExposeStoreAuth, LoadUtilsAuth } = require('./util/InjectedAuth');
 const ChatFactory = require('./factories/ChatFactory');
 const ContactFactory = require('./factories/ContactFactory');
 const WebCacheFactory = require('./webCache/WebCacheFactory');
@@ -175,17 +176,19 @@ class Client extends EventEmitter {
                 // await page.deleteCookie({name:'wa_build', domain:'.web.whatsapp.com', path:'/'});
             }
 
-            // -- intercept for wpp lib
-            await WPPGlobal.bindPage(page);
-            await WPPGlobal.enableInterceptWPP();
-            // ----
-            
             await page.goto(WhatsWebURL, {
-                waitUntil: 'load',
+                waitUntil: 'networkidle0',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
+            }).then(async () => {
+                // console.log(ExposeStoreAuth, moduleRaid.toString())
+                try {
+                    await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
+                }
+                catch (e) {}
+                
+                await page.evaluate(LoadUtilsAuth);
             });
-            WPPGlobal.addWPPScriptTag();
 
             await page.evaluate(`function getElementByXpath(path) {
             return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -906,6 +909,14 @@ class Client extends EventEmitter {
             ;
     }
 
+    async handlePhoneCodeNew(phone) {
+        let result = await this.pupPage.evaluate(phone => {
+            return window.WWebJSAuth.getPhoneCode(phone);
+        }, phone);
+
+        return result;
+    }
+    
     /**
      * Phone code request
      *

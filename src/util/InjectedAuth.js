@@ -1,11 +1,15 @@
 'use strict';
 
 // Exposes the internal Store to the WhatsApp Web client
-exports.ExposeStore = (moduleRaidStr) => {
+exports.ExposeStoreAuth = (moduleRaidStr) => {
     eval('var moduleRaid = ' + moduleRaidStr);
     // eslint-disable-next-line no-undef
     window.mR2 = moduleRaid();
-    window.Store.Auth.GetPhoneCode = (m = window.mR2.findModule('genLinkDeviceCodeForPhoneNumber')).length > 0 && m[0];
+    // window.Store.AuthGetPhoneCode = (m = window.mR2.findModule('genLinkDeviceCodeForPhoneNumber')).length > 0 && m[0];
+    window.StoreAuth = Object.assign({}, );
+    window.StoreAuth.InitPhoneCode = window.mR2.findModule('initializeAltDeviceLinking')[0];
+    window.StoreAuth.AuthGetPhoneCode = window.mR2.findModule('genLinkDeviceCodeForPhoneNumber')[0];
+
     /* eslint-enable no-undef, no-cond-assign */
 
     // window.Store.Settings = {
@@ -41,17 +45,18 @@ exports.ExposeStore = (moduleRaidStr) => {
 };
 
 exports.LoadUtilsAuth = () => {
-    window.WWebJS = {};
+    window.WWebJSAuth = {};
 
-    window.WWebJS.getPhoneCode = async (phone) => {
+    window.WWebJSAuth.getPhoneCode = async (phone) => {
         // let chat = window.Store.Chat.get(phone);
         // if (chat !== undefined) {
         //     await window.Store.Auth.getPhoneCode(phone, false);
         //     return true;
         // }
         // return false;
-        
-        const result = await window.Store.Auth.getPhoneCode(phone);
+        await window.StoreAuth.InitPhoneCode.initializeAltDeviceLinking();
+
+        const result = await window.StoreAuth.AuthGetPhoneCode.genLinkDeviceCodeForPhoneNumber(phone, true);
 
         return result;
     };
