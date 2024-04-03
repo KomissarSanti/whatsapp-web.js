@@ -177,16 +177,24 @@ class Client extends EventEmitter {
             }
 
             await page.goto(WhatsWebURL, {
-                waitUntil: 'load',
+                waitUntil: 'domcontentloaded',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             }).then(async () => {
                 // console.log(ExposeStoreAuth, moduleRaid.toString())
-                try {
-                    await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
-                }
-                catch (e) {}
+                await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
                 
+                // Check window.Store Injection
+                await page.waitForFunction('window.StoreAuth != undefined');
+
+                await page.evaluate(async () => {
+                    // safely unregister service workers
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+
                 await page.evaluate(LoadUtilsAuth);
             });
 
