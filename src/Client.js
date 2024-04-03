@@ -16,6 +16,7 @@ const { ClientInfo, Message, MessageMedia, Contact, Location, Poll, GroupNotific
 const LegacySessionAuth = require('./authStrategies/LegacySessionAuth');
 const NoAuth = require('./authStrategies/NoAuth');
 const LinkingMethod = require('./LinkingMethod');
+const WPPGlobal = require('./WPPGlobal');
 
 /**
  * Starting point for interacting with the WhatsApp Web API
@@ -174,11 +175,17 @@ class Client extends EventEmitter {
                 // await page.deleteCookie({name:'wa_build', domain:'.web.whatsapp.com', path:'/'});
             }
 
+            // -- intercept for wpp lib
+            await WPPGlobal.bindPage(page);
+            await WPPGlobal.enableInterceptWPP();
+            // ----
+            
             await page.goto(WhatsWebURL, {
                 waitUntil: 'load',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             });
+            WPPGlobal.addWPPScriptTag();
 
             await page.evaluate(`function getElementByXpath(path) {
             return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
