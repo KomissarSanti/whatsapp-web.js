@@ -187,13 +187,13 @@ class Client extends EventEmitter {
                 // Check window.Store Injection
                 await page.waitForFunction('window.StoreAuth != undefined');
 
-                await page.evaluate(async () => {
-                    // safely unregister service workers
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    for (let registration of registrations) {
-                        registration.unregister();
-                    }
-                });
+                // await page.evaluate(async () => {
+                //     // safely unregister service workers
+                //     const registrations = await navigator.serviceWorker.getRegistrations();
+                //     for (let registration of registrations) {
+                //         registration.unregister();
+                //     }
+                // });
 
                 await page.evaluate(LoadUtilsAuth);
             });
