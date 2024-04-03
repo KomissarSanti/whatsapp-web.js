@@ -177,7 +177,7 @@ class Client extends EventEmitter {
             }
 
             await page.goto(WhatsWebURL, {
-                waitUntil: 'domcontentloaded',
+                waitUntil: 'load',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             }).then(async () => {
