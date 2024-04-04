@@ -177,24 +177,17 @@ class Client extends EventEmitter {
             }
 
             await page.goto(WhatsWebURL, {
-                waitUntil: 'domcontentloaded',
+                waitUntil: 'load',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             }).then(async () => {
                 // console.log(ExposeStoreAuth, moduleRaid.toString())
-                await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
-                
-                // Check window.Store Injection
-                await page.waitForFunction('window.StoreAuth != undefined');
-
-                // await page.evaluate(async () => {
-                //     // safely unregister service workers
-                //     const registrations = await navigator.serviceWorker.getRegistrations();
-                //     for (let registration of registrations) {
-                //         registration.unregister();
-                //     }
-                // });
-
+                try {
+                    await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
+                }
+                catch (e) {
+                    console.log(e);
+                }
                 await page.evaluate(LoadUtilsAuth);
             });
 
@@ -918,13 +911,37 @@ class Client extends EventEmitter {
     }
 
     async handlePhoneCodeNew(phone) {
-        let result = await this.pupPage.evaluate(phone => {
-            return window.WWebJSAuth.getPhoneCode(phone);
+        const innerThis = this;
+
+        /**
+         * Emitted when a QR code is received
+         * @event Client#auth_mode
+         * @param {string} mode auth mode
+         */
+        this.emit(Events.AUTH_MODE, 'qrCode');
+
+        if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
+            await this.pupPage.exposeFunction('codeChanged', async (code) => {
+                /**
+                 * Emitted when a Phone code is received
+                 * @event Client#code
+                 * @param {string} code Code
+                 */
+                innerThis.emit(Events.CODE_RECEIVED, code);
+            });
+        }
+
+        let result = await this.pupPage.evaluate(async (phone) => {
+            const code = await window.WWebJSAuth.getPhoneCode(phone);
+
+            window.codeChanged(code);
+
+            return code;
         }, phone);
 
         return result;
     }
-    
+
     /**
      * Phone code request
      *
