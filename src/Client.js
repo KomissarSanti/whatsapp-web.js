@@ -926,7 +926,7 @@ class Client extends EventEmitter {
          * @event Client#auth_mode
          * @param {string} mode auth mode
          */
-        this.emit(Events.AUTH_MODE, 'qrCode');
+        this.emit(Events.AUTH_MODE, 'phoneCode');
 
         if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
             await this.pupPage.exposeFunction('codeChanged', async (code) => {
