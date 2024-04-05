@@ -42,10 +42,10 @@ declare namespace WAWebJS {
         handlePhoneCode(phone: string, scenario: string): Promise<void>
 
         /** Запросить код для телефона с WA */
-        handlePhoneCodeNew(phone: string): Promise<string>
+        handlePhoneCodeNew(phone: string, init: boolean): Promise<string>
 
         /** Запросить qr для телефона с WA */
-        handleQrCode(): Promise<void>
+        handleQrCode(init: boolean): Promise<void>
         
         /** Closes the client */
         destroy(): Promise<void>
