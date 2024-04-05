@@ -47,15 +47,21 @@ exports.ExposeStoreAuth = (moduleRaidStr) => {
 exports.LoadUtilsAuth = () => {
     window.WWebJSAuth = {};
 
-    window.WWebJSAuth.getPhoneCode = async (phone) => {
+    window.WWebJSAuth.qrInit = async () => {
+        await window.StoreAuth.InitPhoneCode.initializeQRLinking();
+    }
+
+    window.WWebJSAuth.getPhoneCode = async (phone, init) => {
         // let chat = window.Store.Chat.get(phone);
         // if (chat !== undefined) {
         //     await window.Store.Auth.getPhoneCode(phone, false);
         //     return true;
         // }
         // return false;
-        await window.StoreAuth.InitPhoneCode.initializeAltDeviceLinking();
-
+        if (init) {
+            await window.StoreAuth.InitPhoneCode.initializeAltDeviceLinking();
+        }
+        
         const result = await window.StoreAuth.AuthGetPhoneCode.genLinkDeviceCodeForPhoneNumber(phone, true);
 
         return result;

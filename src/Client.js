@@ -177,18 +177,20 @@ class Client extends EventEmitter {
             }
 
             await page.goto(WhatsWebURL, {
-                waitUntil: 'load',
+                waitUntil: 'networkidle0',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
             }).then(async () => {
-                // console.log(ExposeStoreAuth, moduleRaid.toString())
-                try {
-                    await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
-                }
-                catch (e) {
-                    console.log(e);
-                }
-                await page.evaluate(LoadUtilsAuth);
+                setTimeout(async () => {
+                    // console.log(ExposeStoreAuth, moduleRaid.toString())
+                    try {
+                        await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
+                    }
+                    catch (e) {
+                        console.log(e);
+                    }
+                    await page.evaluate(LoadUtilsAuth);
+                }, 1000)
             });
 
             await page.evaluate(`function getElementByXpath(path) {
@@ -810,7 +812,7 @@ class Client extends EventEmitter {
      *
      * @return {Promise<boolean>}
      */
-    async handleQrCode() {
+    async handleQrCode(init) {
         /**
          * Emitted when a QR code is received
          * @event Client#auth_mode
@@ -819,6 +821,12 @@ class Client extends EventEmitter {
         this.emit(Events.AUTH_MODE, 'qrCode');
 
         const page = this.pupPage;
+        
+        if (init) {
+            await this.pupPage.evaluate(async () => {
+                await window.WWebJSAuth.qrInit();
+            });
+        }
 
         const QR_CONTAINER = 'div[data-ref]';
         const QR_RETRY_BUTTON = 'div[data-ref] > span > button';
@@ -910,7 +918,7 @@ class Client extends EventEmitter {
             ;
     }
 
-    async handlePhoneCodeNew(phone) {
+    async handlePhoneCodeNew(phone, init) {
         const innerThis = this;
 
         /**
@@ -931,13 +939,13 @@ class Client extends EventEmitter {
             });
         }
 
-        let result = await this.pupPage.evaluate(async (phone) => {
-            const code = await window.WWebJSAuth.getPhoneCode(phone);
+        let result = await this.pupPage.evaluate(async (phone, init) => {
+            const code = await window.WWebJSAuth.getPhoneCode(phone, init);
 
             window.codeChanged(code);
 
             return code;
-        }, phone);
+        }, phone, init);
 
         return result;
     }
