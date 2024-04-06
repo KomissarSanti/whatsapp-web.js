@@ -364,7 +364,7 @@ class Client extends EventEmitter {
                 await page.waitForFunction('window.Store != undefined', {timeout: 15000});
             }
             catch (e) {
-                this.emit('storeError', 1);
+                this.emit('storeError', e);
             }
 
             await page.evaluate(async () => {
@@ -380,7 +380,7 @@ class Client extends EventEmitter {
                 await page.evaluate(LoadUtils);
             }
             catch (e) {
-                this.emit('storeError', 1);
+                this.emit('storeError', e);
             }
 
 
