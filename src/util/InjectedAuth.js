@@ -48,7 +48,7 @@ exports.LoadUtilsAuth = () => {
     window.WWebJSAuth = {};
 
     window.WWebJSAuth.qrInit = async () => {
-        await window.StoreAuth.InitPhoneCode.initializeQRLinking();
+        // await window.StoreAuth.InitPhoneCode.initializeQRLinking();
     }
 
     window.WWebJSAuth.getPhoneCode = async (phone, init) => {

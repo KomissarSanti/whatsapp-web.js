@@ -280,7 +280,7 @@ class Client extends EventEmitter {
                 // if (linkingMethod.isPhone()) {
                 //     await handleLinkWithPhoneNumber();
                 // } else {
-                await this.handleQrCode();
+                await this.handleQrCode(true);
                 // }
                 // Wait for link success
 
@@ -360,7 +360,12 @@ class Client extends EventEmitter {
             this.emit(Events.AUTHENTICATED, authEventPayload);
 
             // Check window.Store Injection
-            await page.waitForFunction('window.Store != undefined');
+            try {
+                await page.waitForFunction('window.Store != undefined');
+            }
+            catch (e) {
+                this.emit('storeError', 1);
+            }
 
             await page.evaluate(async () => {
                 // safely unregister service workers
@@ -371,7 +376,13 @@ class Client extends EventEmitter {
             });
 
             //Load util functions (serializers, helper functions)
-            await page.evaluate(LoadUtils);
+            try {
+                await page.evaluate(LoadUtils);
+            }
+            catch (e) {
+                this.emit('storeError', 1);
+            }
+
 
             // Expose client info
             /**
@@ -821,10 +832,10 @@ class Client extends EventEmitter {
         this.emit(Events.AUTH_MODE, 'qrCode');
 
         const page = this.pupPage;
-        
+
         if (init) {
             await this.pupPage.evaluate(async () => {
-                await window.WWebJSAuth.qrInit();
+                // await window.WWebJSAuth.qrInit();
             });
         }
 
@@ -939,13 +950,13 @@ class Client extends EventEmitter {
             });
         }
 
-        let result = await this.pupPage.evaluate(async (phone, init) => {
-            const code = await window.WWebJSAuth.getPhoneCode(phone, init);
+        let result = await this.pupPage.evaluate(async (phone) => {
+            const code = await window.WWebJSAuth.getPhoneCode(phone);
 
             window.codeChanged(code);
 
             return code;
-        }, phone, init);
+        }, phone);
 
         return result;
     }
