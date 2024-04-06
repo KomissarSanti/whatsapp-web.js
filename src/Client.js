@@ -361,7 +361,7 @@ class Client extends EventEmitter {
 
             // Check window.Store Injection
             try {
-                await page.waitForFunction('window.Store != undefined');
+                await page.waitForFunction('window.Store != undefined', {timeout: 15000});
             }
             catch (e) {
                 this.emit('storeError', 1);
