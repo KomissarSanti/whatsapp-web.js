@@ -3,7 +3,7 @@
 const EventEmitter = require('events');
 const puppeteer = require('puppeteer');
 // const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
-const moduleRaid = require('moduleraid/moduleraid');
+const moduleRaid = require('moduleraid');
 
 const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
@@ -17,7 +17,6 @@ const { ClientInfo, Message, MessageMedia, Contact, Location, Poll, GroupNotific
 const LegacySessionAuth = require('./authStrategies/LegacySessionAuth');
 const NoAuth = require('./authStrategies/NoAuth');
 const LinkingMethod = require('./LinkingMethod');
-const WPPGlobal = require('./WPPGlobal');
 
 /**
  * Starting point for interacting with the WhatsApp Web API
