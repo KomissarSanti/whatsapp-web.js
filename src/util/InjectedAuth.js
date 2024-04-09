@@ -4,11 +4,10 @@
 exports.ExposeStoreAuth = (moduleRaidStr) => {
     eval('var moduleRaid = ' + moduleRaidStr);
     // eslint-disable-next-line no-undef
-    window.mR2 = moduleRaid();
     // window.Store.AuthGetPhoneCode = (m = window.mR2.findModule('genLinkDeviceCodeForPhoneNumber')).length > 0 && m[0];
     window.StoreAuth = Object.assign({}, );
-    window.StoreAuth.InitPhoneCode = window.mR2.findModule('initializeAltDeviceLinking')[0];
-    window.StoreAuth.AuthGetPhoneCode = window.mR2.findModule('genLinkDeviceCodeForPhoneNumber')[0];
+    window.StoreAuth.InitPhoneCode = window.require('WAWebAltDeviceLinkingApi');
+    window.StoreAuth.AuthGetPhoneCode = window.require('WAWebLinkDeviceAction');
 
     /* eslint-enable no-undef, no-cond-assign */
 

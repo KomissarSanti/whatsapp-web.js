@@ -4,6 +4,7 @@ const EventEmitter = require('events');
 const puppeteer = require('puppeteer');
 // const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
 const moduleRaid = require('./moduleraid');
+const authRaid = require('./authraid');
 
 const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
@@ -179,49 +180,12 @@ class Client extends EventEmitter {
                 waitUntil: 'load',
                 timeout: 0,
                 referer: 'https://whatsapp.com/'
-            }).then(async () => {
-                // setTimeout(async () => {
-                //     // console.log(ExposeStoreAuth, moduleRaid.toString())
-                //     try {
-                //         await page.evaluate(ExposeStoreAuth, moduleRaid.toString());
-                //     }
-                //     catch (e) {
-                //         console.log(e);
-                //     }
-                //     await page.evaluate(LoadUtilsAuth);
-                // }, 1000)
-            });
+            }).then(async () => {});
 
-            await page.evaluate(ExposeStore, moduleRaid.toString());
-
-            // Check window.Store Injection
-            try {
-                await page.waitForFunction('window.Store != undefined', {timeout: 15000});
-            }
-            catch (e) {
-                this.emit('storeError', e);
-            }
-
-            await page.evaluate(async () => {
-                // safely unregister service workers
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (let registration of registrations) {
-                    registration.unregister();
-                } 
-            });
-
-            //Load util functions (serializers, helper functions)
-            try {
-                await page.evaluate(LoadUtilsAuth);
-                await page.evaluate(LoadUtils);
-            }
-            catch (e) {
-                this.emit('storeError', e);
-            }
-            
+                       
             await page.evaluate(`function getElementByXpath(path) {
-            return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-          }`);
+                return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+              }`);
 
             let lastPercent = null,
                 lastPercentMessage = null;
@@ -376,7 +340,7 @@ class Client extends EventEmitter {
                 };
             });
 
-            await page.evaluate(ExposeStore, moduleRaid.toString());
+            await page.evaluate(ExposeStore);
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
 
             /**
@@ -854,7 +818,7 @@ class Client extends EventEmitter {
      *
      * @return {Promise<boolean>}
      */
-    async handleQrCode(init) {
+    async handleQrCode() {
         /**
          * Emitted when a QR code is received
          * @event Client#auth_mode
@@ -864,11 +828,11 @@ class Client extends EventEmitter {
 
         const page = this.pupPage;
 
-        if (init) {
-            await this.pupPage.evaluate(async () => {
-                await window.WWebJSAuth.qrInit();
-            });
-        }
+        // if (init) {
+        //     await this.pupPage.evaluate(async () => {
+        //         await window.WWebJSAuth.qrInit();
+        //     });
+        // }
 
         const QR_CONTAINER = 'div[data-ref]';
         const QR_RETRY_BUTTON = 'div[data-ref] > span > button';

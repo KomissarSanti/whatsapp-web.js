@@ -1,7 +1,7 @@
 'use strict';
 
 // Exposes the internal Store to the WhatsApp Web client
-exports.ExposeStore = (moduleRaidStr) => {
+exports.ExposeStore = () => {
     window.Store = Object.assign({}, window.require('WAWebCollections'));
     window.Store.AppState = window.require('WAWebSocketModel').Socket;
     window.Store.BlockContact = window.require('WAWebBlockContactAction');
