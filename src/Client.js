@@ -251,6 +251,14 @@ class Client extends EventEmitter {
             // Scan-qrcode selector was found. Needs authentication
             if (needAuthentication) {
                 await page.evaluate(ExposeStoreAuth);
+                // Check window.Store Injection
+                try {
+                    await page.waitForFunction('window.StoreAuth != undefined', {timeout: 15000});
+                }
+                catch (e) {
+                    this.emit('storeError', e);
+                }
+                await page.evaluate(LoadUtilsAuth);
 
                 const {failed, failureEventPayload, restart} = await this.authStrategy.onAuthenticationNeeded();
                 if (failed) {

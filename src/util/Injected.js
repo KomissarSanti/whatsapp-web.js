@@ -307,7 +307,7 @@ exports.LoadUtils = () => {
             from: meUser,
             to: chat.id,
             id: newId,
-            participant: isMD && chat.id.isGroup() ? meUser : undefined,
+            participant: chat.id.isGroup() ? meUser : undefined,
             selfDir: 'out',
         });
 
@@ -624,7 +624,7 @@ exports.LoadUtils = () => {
     window.WWebJS.getContact = async contactId => {
         const wid = window.Store.WidFactory.createWid(contactId);
         const contact = await window.Store.Contact.find(wid);
-        const bizProfile = await window.Store.BusinessProfileCollection.fetchBizProfile(wid);
+        const bizProfile = await window.Store.BusinessProfile.fetchBizProfile(wid);
         bizProfile.profileOptions && (contact.businessProfile = bizProfile);
         return window.WWebJS.getContactModel(contact);
     };
@@ -995,7 +995,7 @@ exports.LoadUtils = () => {
         let response;
         let result = [];
 
-        await window.Store.GroupMetadata.queryAndUpdate(groupWid);
+        await window.Store.GroupQueryAndUpdate(groupWid);
 
         if (!requesterIds?.length) {
             membershipRequests = group.groupMetadata.membershipApprovalRequests._models.map(({ id }) => id);
