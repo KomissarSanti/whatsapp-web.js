@@ -10,7 +10,7 @@ const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
 const { WhatsWebURL, DefaultOptions, Events, WAState } = require('./util/Constants');
 const { ExposeStore, LoadUtils } = require('./util/Injected');
-const { LoadUtilsAuth } = require('./util/InjectedAuth');
+const { LoadUtilsAuth, ExposeStoreAuth} = require('./util/InjectedAuth');
 const ChatFactory = require('./factories/ChatFactory');
 const ContactFactory = require('./factories/ContactFactory');
 const WebCacheFactory = require('./webCache/WebCacheFactory');
@@ -250,6 +250,8 @@ class Client extends EventEmitter {
 
             // Scan-qrcode selector was found. Needs authentication
             if (needAuthentication) {
+                await page.evaluate(ExposeStoreAuth);
+
                 const {failed, failureEventPayload, restart} = await this.authStrategy.onAuthenticationNeeded();
                 if (failed) {
                     /**

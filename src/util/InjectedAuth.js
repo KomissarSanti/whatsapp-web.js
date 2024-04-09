@@ -1,8 +1,7 @@
 'use strict';
 
 // Exposes the internal Store to the WhatsApp Web client
-exports.ExposeStoreAuth = (moduleRaidStr) => {
-    eval('var moduleRaid = ' + moduleRaidStr);
+exports.ExposeStoreAuth = () => {
     // eslint-disable-next-line no-undef
     // window.Store.AuthGetPhoneCode = (m = window.mR2.findModule('genLinkDeviceCodeForPhoneNumber')).length > 0 && m[0];
     window.StoreAuth = Object.assign({}, );
