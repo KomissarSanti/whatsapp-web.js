@@ -182,7 +182,7 @@ class Client extends EventEmitter {
                 referer: 'https://whatsapp.com/'
             }).then(async () => {});
 
-                       
+
             await page.evaluate(`function getElementByXpath(path) {
                 return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
               }`);
@@ -700,71 +700,195 @@ class Client extends EventEmitter {
                     this.emit(Events.MESSAGE_EDIT, new Message(this, msg), newBody, prevBody);
                 });
 
-                await page.evaluate(() => {
-                    window.Store.Msg.on('change', (msg) => {
-                        window.onChangeMessageEvent(window.WWebJS.getMessageModel(msg));
-                    });
-                    window.Store.Msg.on('change:type', (msg) => {
-                        window.onChangeMessageTypeEvent(window.WWebJS.getMessageModel(msg));
-                    });
-                    window.Store.Msg.on('change:ack', (msg, ack) => {
-                        window.onMessageAckEvent(window.WWebJS.getMessageModel(msg), ack);
-                    });
-                    window.Store.Msg.on('change:isUnsentMedia', (msg, unsent) => {
-                        if (msg.id.fromMe && !unsent) window.onMessageMediaUploadedEvent(window.WWebJS.getMessageModel(msg));
-                    });
-                    window.Store.Msg.on('remove', (msg) => {
-                        if (msg.isNewMsg) window.onRemoveMessageEvent(window.WWebJS.getMessageModel(msg));
-                    });
-                    window.Store.Msg.on('change:body', (msg, newBody, prevBody) => {
-                        window.onEditMessageEvent(window.WWebJS.getMessageModel(msg), newBody, prevBody);
-                    });
-                    window.Store.AppState.on('change:state', (_AppState, state) => {
-                        window.onAppStateChangedEvent(state);
-                    });
-                    window.Store.Conn.on('change:battery', (state) => {
-                        window.onBatteryStateChangedEvent(state);
-                    });
-                    window.Store.Call.on('add', (call) => {
-                        window.onIncomingCall(call);
-                    });
-                    window.Store.Chat.on('remove', async (chat) => {
-                        window.onRemoveChatEvent(await window.WWebJS.getChatModel(chat));
-                    });
-                    window.Store.Chat.on('change:archive', async (chat, currState, prevState) => {
-                        window.onArchiveChatEvent(await window.WWebJS.getChatModel(chat), currState, prevState);
-                    });
-                    window.Store.Msg.on('add', (msg) => {
-                        if (msg.isNewMsg) {
-                            if (msg.type === 'ciphertext') {
-                                // defer message event until ciphertext is resolved (type changed)
-                                msg.once('change:type', (_msg) => window.onAddMessageEvent(window.WWebJS.getMessageModel(_msg)));
-                            } else {
-                                window.onAddMessageEvent(window.WWebJS.getMessageModel(msg));
+                try {
+                    await page.evaluate(() => {
+                        window.Store.Msg.on('change', (msg) => {
+                            window.onChangeMessageEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('change:type', (msg) => {
+                            window.onChangeMessageTypeEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('change:ack', (msg, ack) => {
+                            window.onMessageAckEvent(window.WWebJS.getMessageModel(msg), ack);
+                        });
+                        window.Store.Msg.on('change:isUnsentMedia', (msg, unsent) => {
+                            if (msg.id.fromMe && !unsent) window.onMessageMediaUploadedEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('remove', (msg) => {
+                            if (msg.isNewMsg) window.onRemoveMessageEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('change:body', (msg, newBody, prevBody) => {
+                            window.onEditMessageEvent(window.WWebJS.getMessageModel(msg), newBody, prevBody);
+                        });
+                        window.Store.AppState.on('change:state', (_AppState, state) => {
+                            window.onAppStateChangedEvent(state);
+                        });
+                        window.Store.Conn.on('change:battery', (state) => {
+                            window.onBatteryStateChangedEvent(state);
+                        });
+                        window.Store.Call.on('add', (call) => {
+                            window.onIncomingCall(call);
+                        });
+                        window.Store.Chat.on('remove', async (chat) => {
+                            window.onRemoveChatEvent(await window.WWebJS.getChatModel(chat));
+                        });
+                        window.Store.Chat.on('change:archive', async (chat, currState, prevState) => {
+                            window.onArchiveChatEvent(await window.WWebJS.getChatModel(chat), currState, prevState);
+                        });
+                        window.Store.Msg.on('add', (msg) => {
+                            if (msg.isNewMsg) {
+                                if (msg.type === 'ciphertext') {
+                                    // defer message event until ciphertext is resolved (type changed)
+                                    msg.once('change:type', (_msg) => window.onAddMessageEvent(window.WWebJS.getMessageModel(_msg)));
+                                } else {
+                                    window.onAddMessageEvent(window.WWebJS.getMessageModel(msg));
+                                }
                             }
+                        });
+                        window.Store.Chat.on('change:unreadCount', (chat) => {
+                            window.onChatUnreadCountEvent(chat);
+                        });
+
+                        {
+                            const module = window.Store.createOrUpdateReactionsModule;
+                            const ogMethod = module.createOrUpdateReactions;
+                            module.createOrUpdateReactions = ((...args) => {
+                                window.onReaction(args[0].map(reaction => {
+                                    const msgKey = window.Store.MsgKey.fromString(reaction.msgKey);
+                                    const parentMsgKey = window.Store.MsgKey.fromString(reaction.parentMsgKey);
+                                    const timestamp = reaction.timestamp / 1000;
+
+                                    return {...reaction, msgKey, parentMsgKey, timestamp};
+                                }));
+
+                                return ogMethod(...args);
+                            }).bind(module);
                         }
                     });
-                    window.Store.Chat.on('change:unreadCount', (chat) => {
-                        window.onChatUnreadCountEvent(chat);
+                }
+                catch (ee) {
+                    await page.evaluate(ExposeStore);
+                    await page.waitForFunction('(window.Store != undefined && window.Store != null)', {timeout: 15000});
+                    let storeMsg = await page.evaluate(() => {
+                        return Object.keys(window.Store);
                     });
 
-                    {
-                        const module = window.Store.createOrUpdateReactionsModule;
-                        const ogMethod = module.createOrUpdateReactions;
-                        module.createOrUpdateReactions = ((...args) => {
-                            window.onReaction(args[0].map(reaction => {
-                                const msgKey = window.Store.MsgKey.fromString(reaction.msgKey);
-                                const parentMsgKey = window.Store.MsgKey.fromString(reaction.parentMsgKey);
-                                const timestamp = reaction.timestamp / 1000;
+                    await page.evaluate(LoadUtils);
+                    await page.evaluate(() => {
+                        /**
+                         * Helper function that compares between two WWeb versions. Its purpose is to help the developer to choose the correct code implementation depending on the comparison value and the WWeb version.
+                         * @param {string} lOperand The left operand for the WWeb version string to compare with
+                         * @param {string} operator The comparison operator
+                         * @param {string} rOperand The right operand for the WWeb version string to compare with
+                         * @returns {boolean} Boolean value that indicates the result of the comparison
+                         */
+                        window.compareWwebVersions = (lOperand, operator, rOperand) => {
+                            if (!['>', '>=', '<', '<=', '='].includes(operator)) {
+                                throw class _ extends Error {
+                                    constructor(m) {
+                                        super(m);
+                                        this.name = 'CompareWwebVersionsError';
+                                    }
+                                }('Invalid comparison operator is provided');
 
-                                return {...reaction, msgKey, parentMsgKey, timestamp};
-                            }));
+                            }
+                            if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
+                                throw class _ extends Error {
+                                    constructor(m) {
+                                        super(m);
+                                        this.name = 'CompareWwebVersionsError';
+                                    }
+                                }('A non-string WWeb version type is provided');
+                            }
 
-                            return ogMethod(...args);
-                        }).bind(module);
-                    }
-                });
+                            lOperand = lOperand.replace(/-beta$/, '');
+                            rOperand = rOperand.replace(/-beta$/, '');
 
+                            while (lOperand.length !== rOperand.length) {
+                                lOperand.length > rOperand.length
+                                    ? rOperand = rOperand.concat('0')
+                                    : lOperand = lOperand.concat('0');
+                            }
+
+                            lOperand = Number(lOperand.replace(/\./g, ''));
+                            rOperand = Number(rOperand.replace(/\./g, ''));
+
+                            return (
+                                operator === '>' ? lOperand > rOperand :
+                                    operator === '>=' ? lOperand >= rOperand :
+                                        operator === '<' ? lOperand < rOperand :
+                                            operator === '<=' ? lOperand <= rOperand :
+                                                operator === '=' ? lOperand === rOperand :
+                                                    false
+                            );
+                        };
+                    });
+
+                    await page.evaluate(() => {
+                        window.Store.Msg.on('change', (msg) => {
+                            window.onChangeMessageEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('change:type', (msg) => {
+                            window.onChangeMessageTypeEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('change:ack', (msg, ack) => {
+                            window.onMessageAckEvent(window.WWebJS.getMessageModel(msg), ack);
+                        });
+                        window.Store.Msg.on('change:isUnsentMedia', (msg, unsent) => {
+                            if (msg.id.fromMe && !unsent) window.onMessageMediaUploadedEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('remove', (msg) => {
+                            if (msg.isNewMsg) window.onRemoveMessageEvent(window.WWebJS.getMessageModel(msg));
+                        });
+                        window.Store.Msg.on('change:body', (msg, newBody, prevBody) => {
+                            window.onEditMessageEvent(window.WWebJS.getMessageModel(msg), newBody, prevBody);
+                        });
+                        window.Store.AppState.on('change:state', (_AppState, state) => {
+                            window.onAppStateChangedEvent(state);
+                        });
+                        window.Store.Conn.on('change:battery', (state) => {
+                            window.onBatteryStateChangedEvent(state);
+                        });
+                        window.Store.Call.on('add', (call) => {
+                            window.onIncomingCall(call);
+                        });
+                        window.Store.Chat.on('remove', async (chat) => {
+                            window.onRemoveChatEvent(await window.WWebJS.getChatModel(chat));
+                        });
+                        window.Store.Chat.on('change:archive', async (chat, currState, prevState) => {
+                            window.onArchiveChatEvent(await window.WWebJS.getChatModel(chat), currState, prevState);
+                        });
+                        window.Store.Msg.on('add', (msg) => {
+                            if (msg.isNewMsg) {
+                                if (msg.type === 'ciphertext') {
+                                    // defer message event until ciphertext is resolved (type changed)
+                                    msg.once('change:type', (_msg) => window.onAddMessageEvent(window.WWebJS.getMessageModel(_msg)));
+                                } else {
+                                    window.onAddMessageEvent(window.WWebJS.getMessageModel(msg));
+                                }
+                            }
+                        });
+                        window.Store.Chat.on('change:unreadCount', (chat) => {
+                            window.onChatUnreadCountEvent(chat);
+                        });
+
+                        {
+                            const module = window.Store.createOrUpdateReactionsModule;
+                            const ogMethod = module.createOrUpdateReactions;
+                            module.createOrUpdateReactions = ((...args) => {
+                                window.onReaction(args[0].map(reaction => {
+                                    const msgKey = window.Store.MsgKey.fromString(reaction.msgKey);
+                                    const parentMsgKey = window.Store.MsgKey.fromString(reaction.parentMsgKey);
+                                    const timestamp = reaction.timestamp / 1000;
+
+                                    return {...reaction, msgKey, parentMsgKey, timestamp};
+                                }));
+
+                                return ogMethod(...args);
+                            }).bind(module);
+                        }
+                    });
+                }
             }
             catch (e) {
                 this.emit('storeError', e);
@@ -931,7 +1055,7 @@ class Client extends EventEmitter {
             .catch(() => {
                 return false;
             })
-            ;
+        ;
     }
 
     async handlePhoneCodeNew(phone, init) {
@@ -1099,7 +1223,7 @@ class Client extends EventEmitter {
                     .catch(() => {
                         return false;
                     })
-                    ;
+                ;
             };
             const result = await clickOnLinkWithPhoneButton();
 
