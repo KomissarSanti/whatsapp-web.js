@@ -287,16 +287,25 @@ class Client extends EventEmitter {
                 try {
                     await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                 } catch (error) {
-                    if (
-                        error.name === 'ProtocolError' &&
-                        error.message &&
-                        error.message.match(/Target closed/)
-                    ) {
-                        // something has called .destroy() while waiting
-                        return;
-                    }
+                    console.log('ferr', error);
+                    await page.waitForNetworkIdle();
 
-                    throw error;
+                    try {
+                        await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
+                    }
+                    catch (error) {
+                        console.log('serr', error);
+                        if (
+                            error.name === 'ProtocolError' &&
+                            error.message &&
+                            error.message.match(/Target closed/)
+                        ) {
+                            // something has called .destroy() while waiting
+                            return;
+                        }
+
+                        throw error;
+                    }
                 }
             }
 
