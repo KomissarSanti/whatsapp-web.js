@@ -253,7 +253,7 @@ class Client extends EventEmitter {
                 await page.evaluate(ExposeStoreAuth);
                 // Check window.Store Injection
                 try {
-                    await page.waitForFunction('window.StoreAuth != undefined', {timeout: 15000});
+                    await page.waitForFunction('window.StoreAuth != undefined', {timeout: 20000});
                 }
                 catch (e) {
                     this.emit('storeError', e);
@@ -285,7 +285,7 @@ class Client extends EventEmitter {
                 // Wait for link success
 
                 try {
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 5000});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                 } catch (error) {
                     if (
                         error.name === 'ProtocolError' &&
@@ -349,8 +349,14 @@ class Client extends EventEmitter {
                     );
                 };
             });
-
-            await page.evaluate(ExposeStore);
+            
+            try {
+                await page.evaluate(ExposeStore);
+            }
+            catch (e) {
+                await page.evaluate(ExposeStore);
+            }
+            
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
 
             /**
@@ -361,7 +367,7 @@ class Client extends EventEmitter {
 
             // Check window.Store Injection
             try {
-                await page.waitForFunction('window.Store != undefined', {timeout: 15000});
+                await page.waitForFunction('window.Store != undefined', {timeout: 20000});
             }
             catch (e) {
                 this.emit('storeError', e);
@@ -889,8 +895,7 @@ class Client extends EventEmitter {
                         }
                     });
                 }
-            }
-            catch (e) {
+            } catch (e) {
                 this.emit('storeError', e);
             }
 
@@ -1010,11 +1015,12 @@ class Client extends EventEmitter {
                                 mut.type === 'attributes' &&
                                 mut.attributeName === 'data-ref'
                             ) {
+                                // console.log('upd qr', mut.target.dataset.ref);
                                 window.qrChanged(mut.target.dataset.ref);
                             }
                             else if (mut.addedNodes) {
                                 const ref = mut.addedNodes[0]?.dataset?.ref;
-                                console.log('add', ref);
+                                // console.log('add', ref);
 
                                 if (ref) {
                                     window.qrChanged(ref);
@@ -1025,6 +1031,7 @@ class Client extends EventEmitter {
                                 const retry_button = document.querySelector(
                                     selectors.QR_RETRY_BUTTON
                                 );
+                                // console.log(retry_button);
                                 if (retry_button) retry_button.click();
                             }
                         });
