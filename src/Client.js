@@ -285,7 +285,7 @@ class Client extends EventEmitter {
                 // Wait for link success
 
                 try {
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 5000});
                 } catch (error) {
                     if (
                         error.name === 'ProtocolError' &&
