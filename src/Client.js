@@ -293,7 +293,7 @@ class Client extends EventEmitter {
                         });
                     });
                     try {
-                        await page.waitForFunction("window.Store.Stream && window.Store.Stream.mode == 'MAIN'", {timeout: 0});
+                        await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 0});
 
                         // await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                     }
