@@ -276,13 +276,7 @@ class Client extends EventEmitter {
                     return;
                 }
 
-                // const { linkingMethod } = this.options;
-                // if (linkingMethod.isPhone()) {
-                //     await handleLinkWithPhoneNumber();
-                // } else {
                 await this.handleQrCode();
-                // }
-                // Wait for link success
 
                 try {
                     await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
@@ -294,11 +288,9 @@ class Client extends EventEmitter {
                     });
                     try {
                         await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 0});
-
-                        // await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                     }
                     catch (error) {
-                        console.log('serr', error);
+                        // console.log('serr', error);
                         if (
                             error.name === 'ProtocolError' &&
                             error.message &&
