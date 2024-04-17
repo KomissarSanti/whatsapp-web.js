@@ -287,11 +287,15 @@ class Client extends EventEmitter {
                 try {
                     await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                 } catch (error) {
-                    console.log('ferr', error);
-                    await page.waitForNetworkIdle();
-
+                    await page.evaluate(async() => {
+                        await new Promise(function(resolve) {
+                            setTimeout(resolve, 5000);
+                        });
+                    });
                     try {
-                        await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
+                        await page.waitForFunction("window.Store.Stream && window.Store.Stream.mode == 'MAIN'", {timeout: 0});
+
+                        // await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                     }
                     catch (error) {
                         console.log('serr', error);

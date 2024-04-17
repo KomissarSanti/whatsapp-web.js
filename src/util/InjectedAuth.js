@@ -7,7 +7,8 @@ exports.ExposeStoreAuth = () => {
     window.StoreAuth = Object.assign({}, );
     window.StoreAuth.InitPhoneCode = window.require('WAWebAltDeviceLinkingApi');
     window.StoreAuth.AuthGetPhoneCode = window.require('WAWebLinkDeviceAction');
-
+    window.StoreAuth.Stream = window.require('WAWebStreamModel').Stream;
+    
     /* eslint-enable no-undef, no-cond-assign */
 
     // window.Store.Settings = {
