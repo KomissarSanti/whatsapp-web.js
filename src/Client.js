@@ -1595,6 +1595,7 @@ class Client extends EventEmitter {
             else {
                 throw 'timeout error';
             }
+            
         }, chatId, content, internalOptions, sendSeen);
 
         return new Message(this, newMessage);
