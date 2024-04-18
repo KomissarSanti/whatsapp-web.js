@@ -1574,11 +1574,27 @@ class Client extends EventEmitter {
             const chat = await window.Store.Chat.find(chatWid);
 
             if (sendSeen) {
-                window.WWebJS.sendSeen(chatId);
+                await Promise.race([
+                    new Promise((resolve) => {
+                        setTimeout(() => resolve(null), 5000);
+                    }),
+                    window.WWebJS.sendSeen(chatId)
+                ]);
             }
 
-            const msg = await window.WWebJS.sendMessage(chat, message, options, sendSeen);
-            return msg.serialize();
+            const msg = await Promise.race([
+                new Promise((resolve) => {
+                    setTimeout(() => resolve(null), 30000);
+                }),
+                window.WWebJS.sendMessage(chat, message, options, sendSeen)
+            ]);
+            
+            if (msg) {
+                return msg.serialize();
+            }
+            else {
+                throw 'timeout error';
+            }
         }, chatId, content, internalOptions, sendSeen);
 
         return new Message(this, newMessage);
