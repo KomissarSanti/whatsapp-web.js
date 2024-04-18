@@ -1956,6 +1956,7 @@ class Client extends EventEmitter {
             ]);
 
             if (!result || result.wid === undefined) return null;
+            
             return result.wid;
         }, number);
 
