@@ -1091,9 +1091,13 @@ class Client extends EventEmitter {
         let mode = await this.pupPage.evaluate(async (phone) => {
             return window.StoreAuth.Stream.mode;
         }, phone);
+        
+        let currentPhoneCode = await this.pupPage.evaluate(async () => {
+            return window.currentPhoneCode;
+        }, phone);
 
         if (mode === 'SYNCING') {
-            return ;
+            return currentPhoneCode;
         }
 
         /**
@@ -1122,7 +1126,9 @@ class Client extends EventEmitter {
             const code = await window.WWebJSAuth.getPhoneCode(phone, true);
 
             window.codeChanged(code);
-
+            
+            window.currentPhoneCode = code;
+            
             return code;
         }, phone);
 
