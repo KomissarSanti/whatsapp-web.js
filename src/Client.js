@@ -2436,6 +2436,20 @@ class Client extends EventEmitter {
         catch (e) {this.emit('storeError', e);}
         await this.pupPage.evaluate(LoadUtilsAuth);
 
+        let hasOnStreamMode = await this.pupPage.evaluate(() => {return window.onStreamMode;});
+        if (!hasOnStreamMode) {
+            await this.pupPage.exposeFunction('onStreamMode', (val) => {
+                if (val.mode === 'SYNCING') {
+                    this.emit(Events.LOADING_SCREEN, 0, 1);
+                }
+            });
+        }
+        
+        await this.pupPage.evaluate(() => {
+            window.StoreAuth.Stream.on('change:mode', (msg) => {
+                window.onStreamMode(msg);
+            });
+        });
         console.log('RELOAD AUTH UTILS');
     }
 
