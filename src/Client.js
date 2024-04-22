@@ -267,7 +267,7 @@ class Client extends EventEmitter {
                 });
 
                 await page.evaluate(() => {
-                    window.Store.Stream.on('change:mode', (msg) => {
+                    window.StoreAuth.Stream.on('change:mode', (msg) => {
                         window.onStreamMode(msg);
                     });
                 });
