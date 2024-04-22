@@ -291,6 +291,9 @@ class Client extends EventEmitter {
                 await this.handleQrCode();
 
                 try {
+                    if (!await this.validateAuthUtils()) {
+                        await this.reloadAuthUtils();
+                    }
                     await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
                 } catch (error) {
                     await page.evaluate(async() => {
@@ -299,6 +302,10 @@ class Client extends EventEmitter {
                         });
                     });
                     try {
+                        if (!await this.validateAuthUtils()) {
+                            await this.reloadAuthUtils();
+                        }
+
                         await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 0});
                     }
                     catch (error) {
@@ -366,14 +373,8 @@ class Client extends EventEmitter {
                     );
                 };
             });
-            
-            try {
-                await page.evaluate(ExposeStore);
-            }
-            catch (e) {
-                await page.evaluate(ExposeStore);
-            }
-            
+
+            await page.evaluate(ExposeStore);
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
 
             /**
@@ -384,7 +385,7 @@ class Client extends EventEmitter {
 
             // Check window.Store Injection
             try {
-                await page.waitForFunction('window.Store != undefined', {timeout: 20000});
+                await page.waitForFunction('window.Store != undefined && window.Store != null', {timeout: 20000});
             }
             catch (e) {
                 this.emit('storeError', e);
@@ -1102,6 +1103,10 @@ class Client extends EventEmitter {
          */
         this.emit(Events.AUTH_MODE, 'phoneCode');
 
+        if (!await this.validateAuthUtils()) {
+            await this.reloadAuthUtils();
+        }
+
         if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
             await this.pupPage.exposeFunction('codeChanged', async (code) => {
                 /**
@@ -1610,14 +1615,14 @@ class Client extends EventEmitter {
                 }),
                 window.WWebJS.sendMessage(chat, message, options, sendSeen)
             ]);
-            
+
             if (msg) {
                 return msg.serialize();
             }
             else {
                 throw 'timeout error';
             }
-            
+
         }, chatId, content, internalOptions, sendSeen);
 
         return new Message(this, newMessage);
@@ -1995,7 +2000,7 @@ class Client extends EventEmitter {
             ]);
 
             if (!result || result.wid === undefined) return null;
-            
+
             return result.wid;
         }, number);
 
@@ -2391,6 +2396,56 @@ class Client extends EventEmitter {
             await window.Store.Settings.setAutoDownloadVideos(flag);
             return flag;
         }, flag);
+    }
+
+    async validateAuthUtils() {
+        let validate = true;
+        
+        try {await this.pupPage.waitForFunction('window.StoreAuth != undefined && window.StoreAuth != null', {timeout: 1000});}catch (e) {
+            console.log('StoreAuth undefined');
+            validate = false;
+        }
+        try {await this.pupPage.waitForFunction('window.WWebJSAuth != undefined && window.WWebJSAuth != null', {timeout: 1000});}catch (e) {
+            console.log('WwebJsAuth undefined');
+            validate = false;
+        }
+
+        console.log('VALIDATE AUTH UTILS', validate);
+
+        return validate;
+    }
+
+    async validateMainUtils() {
+        let validate = true;
+
+        try {await this.pupPage.waitForFunction('window.Store != undefined && window.Store != null', {timeout: 1000});}catch (e) {
+            console.log('Store undefined');
+            validate = false;
+        }
+        try {await this.pupPage.waitForFunction('window.WWebJS != undefined && window.WWebJS != null', {timeout: 1000});}catch (e) {
+            console.log('WwebJs undefined');
+            validate = false;
+        }
+
+        return validate;
+    }
+
+    async reloadAuthUtils() {
+        await this.pupPage.evaluate(ExposeStoreAuth);
+        try {await this.pupPage.waitForFunction('window.StoreAuth != undefined && window.StoreAuth != null', {timeout: 5000});}
+        catch (e) {this.emit('storeError', e);}
+        await this.pupPage.evaluate(LoadUtilsAuth);
+
+        console.log('RELOAD AUTH UTILS');
+    }
+
+    async reloadMainUtils() {
+        await this.pupPage.evaluate(ExposeStore);
+        try {await this.pupPage.waitForFunction('window.Store != undefined && window.Store != null', {timeout: 5000});}
+        catch (e) {this.emit('storeError', e);}
+        await this.pupPage.evaluate(LoadUtils);
+        
+        console.log('RELOAD MAIN UTILS');
     }
 }
 
