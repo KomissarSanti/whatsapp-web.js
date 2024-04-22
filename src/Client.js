@@ -260,6 +260,18 @@ class Client extends EventEmitter {
                 }
                 await page.evaluate(LoadUtilsAuth);
 
+                await page.exposeFunction('onStreamMode', (val) => {
+                    if (val.mode === 'SYNCING') {
+                        this.emit(Events.LOADING_SCREEN, 0, 1);
+                    }
+                });
+
+                await page.evaluate(() => {
+                    window.Store.Stream.on('change:mode', (msg) => {
+                        window.onStreamMode(msg);
+                    });
+                });
+                
                 const {failed, failureEventPayload, restart} = await this.authStrategy.onAuthenticationNeeded();
                 if (failed) {
                     /**
@@ -1071,7 +1083,17 @@ class Client extends EventEmitter {
     }
 
     async handlePhoneCodeNew(phone, init) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
         const innerThis = this;
+
+        let mode = await this.pupPage.evaluate(async (phone) => {
+            return window.StoreAuth.Stream.mode;
+        }, phone);
+
+        if (mode === 'SYNCING') {
+            return ;
+        }
 
         /**
          * Emitted when a QR code is received
