@@ -1088,9 +1088,13 @@ class Client extends EventEmitter {
 
         const innerThis = this;
 
-        let mode = await this.pupPage.evaluate(async (phone) => {
+        if (!await this.validateAuthUtils()) {
+            await this.reloadAuthUtils();
+        }
+
+        let mode = await this.pupPage.evaluate(async () => {
             return window.StoreAuth.Stream.mode;
-        }, phone);
+        });
         
         let currentPhoneCode = await this.pupPage.evaluate(async () => {
             return window.currentPhoneCode;
@@ -1106,10 +1110,6 @@ class Client extends EventEmitter {
          * @param {string} mode auth mode
          */
         this.emit(Events.AUTH_MODE, 'phoneCode');
-
-        if (!await this.validateAuthUtils()) {
-            await this.reloadAuthUtils();
-        }
 
         if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
             await this.pupPage.exposeFunction('codeChanged', async (code) => {
