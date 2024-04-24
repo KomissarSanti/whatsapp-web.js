@@ -374,7 +374,11 @@ class Client extends EventEmitter {
                 };
             });
 
-            await page.evaluate(ExposeStore);
+            try {
+                await page.evaluate(ExposeStore);
+            }
+            catch (e) {}
+            
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
 
             /**
@@ -2433,6 +2437,8 @@ class Client extends EventEmitter {
             validate = false;
         }
 
+        console.log('VALIDATE MAIN UTILS', validate);
+        
         return validate;
     }
 
