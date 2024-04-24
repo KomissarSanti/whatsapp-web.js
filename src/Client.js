@@ -271,7 +271,7 @@ class Client extends EventEmitter {
                         window.onStreamMode(msg);
                     });
                 });
-                
+
                 const {failed, failureEventPayload, restart} = await this.authStrategy.onAuthenticationNeeded();
                 if (failed) {
                     /**
@@ -324,61 +324,60 @@ class Client extends EventEmitter {
                 }
             }
 
-            // await page.evaluate(() => {
-            //     /**
-            //      * Helper function that compares between two WWeb versions. Its purpose is to help the developer to choose the correct code implementation depending on the comparison value and the WWeb version.
-            //      * @param {string} lOperand The left operand for the WWeb version string to compare with
-            //      * @param {string} operator The comparison operator
-            //      * @param {string} rOperand The right operand for the WWeb version string to compare with
-            //      * @returns {boolean} Boolean value that indicates the result of the comparison
-            //      */
-            //     window.compareWwebVersions = (lOperand, operator, rOperand) => {
-            //         if (!['>', '>=', '<', '<=', '='].includes(operator)) {
-            //             throw class _ extends Error {
-            //                 constructor(m) {
-            //                     super(m);
-            //                     this.name = 'CompareWwebVersionsError';
-            //                 }
-            //             }('Invalid comparison operator is provided');
-            //
-            //         }
-            //         if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
-            //             throw class _ extends Error {
-            //                 constructor(m) {
-            //                     super(m);
-            //                     this.name = 'CompareWwebVersionsError';
-            //                 }
-            //             }('A non-string WWeb version type is provided');
-            //         }
-            //
-            //         lOperand = lOperand.replace(/-beta$/, '');
-            //         rOperand = rOperand.replace(/-beta$/, '');
-            //
-            //         while (lOperand.length !== rOperand.length) {
-            //             lOperand.length > rOperand.length
-            //                 ? rOperand = rOperand.concat('0')
-            //                 : lOperand = lOperand.concat('0');
-            //         }
-            //
-            //         lOperand = Number(lOperand.replace(/\./g, ''));
-            //         rOperand = Number(rOperand.replace(/\./g, ''));
-            //
-            //         return (
-            //             operator === '>' ? lOperand > rOperand :
-            //                 operator === '>=' ? lOperand >= rOperand :
-            //                     operator === '<' ? lOperand < rOperand :
-            //                         operator === '<=' ? lOperand <= rOperand :
-            //                             operator === '=' ? lOperand === rOperand :
-            //                                 false
-            //         );
-            //     };
-            // });
-
             try {
+                await page.evaluate(() => {
+                    /**
+                     * Helper function that compares between two WWeb versions. Its purpose is to help the developer to choose the correct code implementation depending on the comparison value and the WWeb version.
+                     * @param {string} lOperand The left operand for the WWeb version string to compare with
+                     * @param {string} operator The comparison operator
+                     * @param {string} rOperand The right operand for the WWeb version string to compare with
+                     * @returns {boolean} Boolean value that indicates the result of the comparison
+                     */
+                    window.compareWwebVersions = (lOperand, operator, rOperand) => {
+                        if (!['>', '>=', '<', '<=', '='].includes(operator)) {
+                            throw class _ extends Error {
+                                constructor(m) {
+                                    super(m);
+                                    this.name = 'CompareWwebVersionsError';
+                                }
+                            }('Invalid comparison operator is provided');
+
+                        }
+                        if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
+                            throw class _ extends Error {
+                                constructor(m) {
+                                    super(m);
+                                    this.name = 'CompareWwebVersionsError';
+                                }
+                            }('A non-string WWeb version type is provided');
+                        }
+
+                        lOperand = lOperand.replace(/-beta$/, '');
+                        rOperand = rOperand.replace(/-beta$/, '');
+
+                        while (lOperand.length !== rOperand.length) {
+                            lOperand.length > rOperand.length
+                                ? rOperand = rOperand.concat('0')
+                                : lOperand = lOperand.concat('0');
+                        }
+
+                        lOperand = Number(lOperand.replace(/\./g, ''));
+                        rOperand = Number(rOperand.replace(/\./g, ''));
+
+                        return (
+                            operator === '>' ? lOperand > rOperand :
+                                operator === '>=' ? lOperand >= rOperand :
+                                    operator === '<' ? lOperand < rOperand :
+                                        operator === '<=' ? lOperand <= rOperand :
+                                            operator === '=' ? lOperand === rOperand :
+                                                false
+                        );
+                    };
+                });
                 await page.evaluate(ExposeStore);
             }
             catch (e) {}
-            
+
             const authEventPayload = await this.authStrategy.getAuthEventPayload();
 
             /**
@@ -393,17 +392,20 @@ class Client extends EventEmitter {
             }
             catch (e) {
                 this.emit('storeError', e);
-                
+
                 return ;
             }
 
-            // await page.evaluate(async () => {
-            //     // safely unregister service workers
-            //     const registrations = await navigator.serviceWorker.getRegistrations();
-            //     for (let registration of registrations) {
-            //         registration.unregister();
-            //     }
-            // });
+            try {
+                await page.evaluate(async () => {
+                    // safely unregister service workers
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+            catch (e) {}
 
             //Load util functions (serializers, helper functions)
             try {
@@ -411,7 +413,7 @@ class Client extends EventEmitter {
             }
             catch (e) {
                 this.emit('storeError', e);
-                
+
                 return;
             }
 
@@ -1103,7 +1105,7 @@ class Client extends EventEmitter {
         let mode = await this.pupPage.evaluate(async () => {
             return window.StoreAuth.Stream.mode;
         });
-        
+
         let currentPhoneCode = await this.pupPage.evaluate(async () => {
             return window.currentPhoneCode;
         }, phone);
@@ -1134,9 +1136,9 @@ class Client extends EventEmitter {
             const code = await window.WWebJSAuth.getPhoneCode(phone, true);
 
             window.codeChanged(code);
-            
+
             window.currentPhoneCode = code;
-            
+
             return code;
         }, phone);
 
@@ -2415,10 +2417,10 @@ class Client extends EventEmitter {
     async createScreenshot(path) {
         return await this.pupPage.screenshot({quality: 50, path});
     }
-    
+
     async validateAuthUtils() {
         let validate = true;
-        
+
         try {await this.pupPage.waitForFunction('window.StoreAuth != undefined && window.StoreAuth != null', {timeout: 1000});}catch (e) {
             console.log('StoreAuth undefined');
             validate = false;
@@ -2446,7 +2448,7 @@ class Client extends EventEmitter {
         }
 
         console.log('VALIDATE MAIN UTILS', validate);
-        
+
         return validate;
     }
 
@@ -2464,7 +2466,7 @@ class Client extends EventEmitter {
                 }
             });
         }
-        
+
         await this.pupPage.evaluate(() => {
             window.StoreAuth.Stream.on('change:mode', (msg) => {
                 window.onStreamMode(msg);
@@ -2478,7 +2480,7 @@ class Client extends EventEmitter {
         try {await this.pupPage.waitForFunction('window.Store != undefined && window.Store != null', {timeout: 5000});}
         catch (e) {this.emit('storeError', e);}
         await this.pupPage.evaluate(LoadUtils);
-        
+
         console.log('RELOAD MAIN UTILS');
     }
 }
