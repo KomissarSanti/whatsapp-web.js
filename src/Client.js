@@ -309,6 +309,7 @@ class Client extends EventEmitter {
                         await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 0});
                     }
                     catch (error) {
+                        
                         this.emit(Events.AUTHENTICATION_FAILURE, error);
 
                         // console.log('serr', error);
