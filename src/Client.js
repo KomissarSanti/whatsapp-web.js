@@ -155,6 +155,7 @@ class Client extends EventEmitter {
                 }
             });
 
+            
             // ocVesion (isOfficialClient patch)
             await page.evaluateOnNewDocument(() => {
                 const originalError = Error;
