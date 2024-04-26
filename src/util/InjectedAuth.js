@@ -9,6 +9,13 @@ exports.ExposeStoreAuth = () => {
     window.StoreAuth.AuthGetPhoneCode = window.require('WAWebLinkDeviceAction');
     window.StoreAuth.Stream = window.require('WAWebStreamModel').Stream;
     
+    window.StoreAuth.RegistrationUtils = {
+        ...window.require('WAWebCompanionRegClientUtils'),
+        ...window.require('WAWebAdvSignatureApi'),
+        ...window.require('WAWebUserPrefsInfoStore'),
+        ...window.require('WAWebSignalStoreApi'),
+    };
+    
     /* eslint-enable no-undef, no-cond-assign */
 
     // window.Store.Settings = {
@@ -48,7 +55,7 @@ exports.LoadUtilsAuth = () => {
 
     window.WWebJSAuth.qrInit = async () => {
         // await window.StoreAuth.InitPhoneCode.initializeQRLinking();
-    }
+    };
 
     window.WWebJSAuth.getPhoneCode = async (phone, init) => {
         // let chat = window.Store.Chat.get(phone);

@@ -140,6 +140,21 @@ class Client extends EventEmitter {
             await this.authStrategy.afterBrowserInitialized();
             await this.initWebVersionCache();
 
+            page.on('pageerror', async () => {
+                if (!await this.validateAuthUtils()) {
+                    await this.reloadAuthUtils();
+                }
+
+                let info = await page.evaluate(async () => {
+                    return await window.StoreAuth.RegistrationUtils.waSignalStore.getRegistrationInfo();
+                });
+
+                if (!info) {
+                    this.emit(Events.DISCONNECTED, 'IndexedDB error');
+                    this.destroy();
+                }
+            });
+
             // ocVesion (isOfficialClient patch)
             await page.evaluateOnNewDocument(() => {
                 const originalError = Error;
@@ -294,8 +309,9 @@ class Client extends EventEmitter {
                     if (!await this.validateAuthUtils()) {
                         await this.reloadAuthUtils();
                     }
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 0});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 1});
                 } catch (error) {
+                    console.log('img err', error);
                     await page.evaluate(async() => {
                         await new Promise(function(resolve) {
                             setTimeout(resolve, 5000);
