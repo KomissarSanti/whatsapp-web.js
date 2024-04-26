@@ -310,7 +310,7 @@ class Client extends EventEmitter {
                     if (!await this.validateAuthUtils()) {
                         await this.reloadAuthUtils();
                     }
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 120000});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 100000});
                 } catch (error) {
                     await page.evaluate(async() => {
                         await new Promise(function(resolve) {
@@ -322,10 +322,9 @@ class Client extends EventEmitter {
                             await this.reloadAuthUtils();
                         }
 
-                        await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 120000});
+                        await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 100000});
                     }
                     catch (error) {
-                        
                         this.emit(Events.AUTHENTICATION_FAILURE, error);
 
                         // console.log('serr', error);
