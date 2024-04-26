@@ -310,9 +310,8 @@ class Client extends EventEmitter {
                     if (!await this.validateAuthUtils()) {
                         await this.reloadAuthUtils();
                     }
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 1});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 120000});
                 } catch (error) {
-                    console.log('img err', error);
                     await page.evaluate(async() => {
                         await new Promise(function(resolve) {
                             setTimeout(resolve, 5000);
@@ -323,7 +322,7 @@ class Client extends EventEmitter {
                             await this.reloadAuthUtils();
                         }
 
-                        await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 0});
+                        await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 120000});
                     }
                     catch (error) {
                         
