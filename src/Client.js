@@ -3,8 +3,6 @@
 const EventEmitter = require('events');
 const puppeteer = require('puppeteer');
 // const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
-const moduleRaid = require('./moduleraid');
-const authRaid = require('./authraid');
 
 const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
@@ -155,7 +153,6 @@ class Client extends EventEmitter {
                 }
             });
 
-            
             // ocVesion (isOfficialClient patch)
             await page.evaluateOnNewDocument(() => {
                 const originalError = Error;
@@ -276,11 +273,15 @@ class Client extends EventEmitter {
                 }
                 await page.evaluate(LoadUtilsAuth);
 
-                await page.exposeFunction('onStreamMode', (val) => {
-                    if (val.mode === 'SYNCING') {
-                        this.emit(Events.LOADING_SCREEN, 0, 1);
-                    }
-                });
+                let hasOnStreamMode = await this.pupPage.evaluate(() => {return (undefined !== window.onStreamMode && null !== window.onStreamMode);});
+
+                if (!hasOnStreamMode) {
+                    await page.exposeFunction('onStreamMode', (val) => {
+                        if (val.mode === 'SYNCING') {
+                            this.emit(Events.LOADING_SCREEN, 0, 1);
+                        }
+                    });
+                }
 
                 await page.evaluate(() => {
                     window.StoreAuth.Stream.on('change:mode', (msg) => {
@@ -318,11 +319,7 @@ class Client extends EventEmitter {
                         });
                     });
                     try {
-                        if (!await this.validateAuthUtils()) {
-                            await this.reloadAuthUtils();
-                        }
-
-                        await page.waitForFunction("window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 0});
+                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 60000});
                     }
                     catch (error) {
                         this.emit(Events.AUTHENTICATION_FAILURE, error);
@@ -2477,7 +2474,7 @@ class Client extends EventEmitter {
         catch (e) {this.emit('storeError', e);}
         await this.pupPage.evaluate(LoadUtilsAuth);
 
-        let hasOnStreamMode = await this.pupPage.evaluate(() => {return window.onStreamMode;});
+        let hasOnStreamMode = await this.pupPage.evaluate(() => {return (undefined !== window.onStreamMode && null !== window.onStreamMode);});
         if (!hasOnStreamMode) {
             await this.pupPage.exposeFunction('onStreamMode', (val) => {
                 if (val.mode === 'SYNCING') {
