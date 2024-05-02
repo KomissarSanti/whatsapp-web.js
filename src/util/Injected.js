@@ -30,7 +30,7 @@ exports.ExposeStore = () => {
     window.Store.Validators = window.require('WALinkify');
     window.Store.VCard = window.require('WAWebFrontendVcardUtils');
     window.Store.WidFactory = window.require('WAWebWidFactory');
-    window.Store.ProfilePic = window.require('WAWebContactProfilePicThumbBridge');
+    window.Store.ProfilePic = window.require('WAWebProfilePicThumbCollection').ProfilePicThumbCollection;
     window.Store.PresenceUtils = window.require('WAWebPresenceChatAction');
     window.Store.ChatState = window.require('WAWebChatStateBridge');
     window.Store.findCommonGroups = window.require('WAWebFindCommonGroupsContactAction').findCommonGroups;
