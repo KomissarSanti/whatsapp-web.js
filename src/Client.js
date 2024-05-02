@@ -1952,16 +1952,18 @@ class Client extends EventEmitter {
         const profilePic = await this.pupPage.evaluate(async contactId => {
             try {
                 const chatWid = window.Store.WidFactory.createWid(contactId);
-                return await window.Store.ProfilePic.find(chatWid);
+                const result = await window.Store.ProfilePic.find(chatWid);
+
+                return result ? result.eurl : undefined;
             } catch (err) {
                 if(err.name === 'ServerStatusCodeError') return undefined;
-                
+
                 return null;
                 // throw err;
             }
         }, contactId);
 
-        return profilePic ? profilePic.eurl : undefined;
+        return profilePic ? profilePic : undefined;
     }
 
     /**
