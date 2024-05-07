@@ -311,7 +311,7 @@ class Client extends EventEmitter {
                     if (!await this.validateAuthUtils()) {
                         await this.reloadAuthUtils();
                     }
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 200000});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 540000});
                 } catch (error) {
                     await page.evaluate(async() => {
                         await new Promise(function(resolve) {
