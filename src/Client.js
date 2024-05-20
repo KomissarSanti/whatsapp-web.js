@@ -325,7 +325,7 @@ class Client extends EventEmitter {
                             return await window.StoreAuth.Stream.mode;
                         });
                         
-                        if (!imgContainerExists && 'SYNCING' === streamMode) {
+                        if (!imgContainerExists) {
                             this.emit(Events.AUTHENTICATION_FAILURE, '[' + streamMode + '] ' + error.message);
 
                             if (
