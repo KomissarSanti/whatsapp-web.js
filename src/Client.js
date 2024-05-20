@@ -320,6 +320,7 @@ class Client extends EventEmitter {
                         if (!await this.validateAuthUtils()) {
                             await this.reloadAuthUtils();
                         }
+                        
                         const imgContainerExists = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_IMG_SELECTOR));}, {INTRO_IMG_SELECTOR});
                         const streamMode = await page.evaluate(async () => {
                             return await window.StoreAuth.Stream.mode;
