@@ -311,31 +311,33 @@ class Client extends EventEmitter {
                     if (!await this.validateAuthUtils()) {
                         await this.reloadAuthUtils();
                     }
-                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 540000});
+                    await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 240000});
                 } catch (error) {
-                    await page.evaluate(async() => {
-                        await new Promise(function(resolve) {
-                            setTimeout(resolve, 5000);
-                        });
-                    });
                     try {
-                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 60000});
+                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 240000});
                     }
                     catch (error) {
-                        this.emit(Events.AUTHENTICATION_FAILURE, error);
-
-                        // console.log('serr', error);
-                        if (
-                            error.name === 'ProtocolError' &&
-                            error.message &&
-                            error.message.match(/Target closed/)
-                        ) {
-                            // something has called .destroy() while waiting
-                            return;
+                        if (!await this.validateAuthUtils()) {
+                            await this.reloadAuthUtils();
                         }
-                        this.emit('storeError', error);
+                        const imgContainerExists = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_IMG_SELECTOR));}, {INTRO_IMG_SELECTOR});
+                        const streamMode = await page.evaluate(async () => {
+                            return await window.StoreAuth.Stream.mode;
+                        });
+                        
+                        if (!imgContainerExists && 'SYNCING' === streamMode) {
+                            this.emit(Events.AUTHENTICATION_FAILURE, error);
 
-                        throw error;
+                            if (
+                                error.name === 'ProtocolError' &&
+                                error.message &&
+                                error.message.match(/Target closed/)
+                            ) {
+                                // something has called .destroy() while waiting
+                                return;
+                            }
+                            this.emit('storeError', error);
+                        }
                     }
                 }
             }
