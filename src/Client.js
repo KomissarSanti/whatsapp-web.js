@@ -326,7 +326,7 @@ class Client extends EventEmitter {
                         });
                         
                         if (!imgContainerExists && 'SYNCING' === streamMode) {
-                            this.emit(Events.AUTHENTICATION_FAILURE, error);
+                            this.emit(Events.AUTHENTICATION_FAILURE, '[' + streamMode + '] ' + error.message);
 
                             if (
                                 error.name === 'ProtocolError' &&
