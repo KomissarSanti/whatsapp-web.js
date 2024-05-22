@@ -284,8 +284,15 @@ class Client extends EventEmitter {
                 }
 
                 await page.evaluate(() => {
-                    window.StoreAuth.Stream.on('change:mode', (msg) => {
-                        window.onStreamMode(msg);
+                    window.StoreAuth.Stream.on('all', (event) => {
+                        console.log(window.StoreAuth.Stream);
+
+                        const streamMode = {
+                            mode: window.StoreAuth.Stream.mode,
+                            info: window.StoreAuth.Stream.info,
+                        };
+
+                        window.onStreamMode(JSON.stringify(streamMode));
                     });
                 });
 
@@ -314,7 +321,7 @@ class Client extends EventEmitter {
                     await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 240000});
                 } catch (error) {
                     try {
-                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 240000});
+                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 720000});
                     }
                     catch (error) {
                         if (!await this.validateAuthUtils()) {
