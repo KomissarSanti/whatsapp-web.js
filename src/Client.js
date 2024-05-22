@@ -277,6 +277,8 @@ class Client extends EventEmitter {
 
                 if (!hasOnStreamMode) {
                     await page.exposeFunction('onStreamMode', (val) => {
+                        this.emit('streamMode', JSON.parse(val));
+
                         if (val.mode === 'SYNCING') {
                             this.emit(Events.LOADING_SCREEN, 0, 1);
                         }
@@ -2495,6 +2497,7 @@ class Client extends EventEmitter {
         let hasOnStreamMode = await this.pupPage.evaluate(() => {return (undefined !== window.onStreamMode && null !== window.onStreamMode);});
         if (!hasOnStreamMode) {
             await this.pupPage.exposeFunction('onStreamMode', (val) => {
+                this.emit('streamMode', JSON.parse(val));
                 if (val.mode === 'SYNCING') {
                     this.emit(Events.LOADING_SCREEN, 0, 1);
                 }
@@ -2502,8 +2505,15 @@ class Client extends EventEmitter {
         }
 
         await this.pupPage.evaluate(() => {
-            window.StoreAuth.Stream.on('change:mode', (msg) => {
-                window.onStreamMode(msg);
+            window.StoreAuth.Stream.on('all', (event) => {
+                if (['change:mode', 'change:info'].includes(event)) {
+                    const streamMode = {
+                        mode: window.StoreAuth.Stream.mode,
+                        info: window.StoreAuth.Stream.info,
+                    };
+
+                    window.onStreamMode(JSON.stringify(streamMode));
+                }
             });
         });
         console.log('RELOAD AUTH UTILS');
