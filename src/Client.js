@@ -285,14 +285,14 @@ class Client extends EventEmitter {
 
                 await page.evaluate(() => {
                     window.StoreAuth.Stream.on('all', (event) => {
-                        console.log(window.StoreAuth.Stream);
+                        if (['change:mode', 'change:info'].includes(event)) {
+                            const streamMode = {
+                                mode: window.StoreAuth.Stream.mode,
+                                info: window.StoreAuth.Stream.info,
+                            };
 
-                        const streamMode = {
-                            mode: window.StoreAuth.Stream.mode,
-                            info: window.StoreAuth.Stream.info,
-                        };
-
-                        window.onStreamMode(JSON.stringify(streamMode));
+                            window.onStreamMode(JSON.stringify(streamMode));
+                        }
                     });
                 });
 
@@ -321,7 +321,11 @@ class Client extends EventEmitter {
                     await page.waitForSelector(INTRO_IMG_SELECTOR, {timeout: 240000});
                 } catch (error) {
                     try {
-                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 720000});
+                        if (!await this.validateAuthUtils()) {
+                            await this.reloadAuthUtils();
+                        }
+                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'SYNCING'");
+                        // await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 720000});
                     }
                     catch (error) {
                         if (!await this.validateAuthUtils()) {
