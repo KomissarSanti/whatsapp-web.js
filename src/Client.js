@@ -326,8 +326,8 @@ class Client extends EventEmitter {
                         if (!await this.validateAuthUtils()) {
                             await this.reloadAuthUtils();
                         }
-                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'SYNCING'");
-                        // await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 720000});
+                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && (window.StoreAuth.Stream.mode == 'SYNCING' || window.StoreAuth.Stream.mode == 'MAIN')");
+                        await page.waitForFunction("window.StoreAuth && window.StoreAuth.Stream && window.StoreAuth.Stream.mode == 'MAIN'", {timeout: 720000});
                     }
                     catch (error) {
                         if (!await this.validateAuthUtils()) {
