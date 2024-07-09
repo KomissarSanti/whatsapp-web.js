@@ -138,8 +138,10 @@ class Client extends EventEmitter {
             await this.authStrategy.afterBrowserInitialized();
             await this.initWebVersionCache();
 
-            page.on('pageerror', async () => {
+            page.on('pageerror', async (event) => {
                 if (!await this.validateAuthUtils()) {
+                    this.emit('pageError', event);
+
                     await this.reloadAuthUtils();
                 }
 
@@ -2150,10 +2152,18 @@ class Client extends EventEmitter {
 
             try {
                 createGroupResult = await window.Store.GroupUtils.createGroup(
-                    title,
-                    participantWids,
-                    messageTimer,
-                    parentGroupWid
+                    {
+                        'memberAddMode': options.memberAddMode === undefined ? true : options.memberAddMode,
+                        'membershipApprovalMode': options.membershipApprovalMode === undefined ? false : options.membershipApprovalMode,
+                        'announce': options.announce === undefined ? true : options.announce,
+                        'ephemeralDuration': messageTimer,
+                        'full': undefined,
+                        'parentGroupId': parentGroupWid,
+                        'restrict': options.restrict === undefined ? true : options.restrict,
+                        'thumb': undefined,
+                        'title': title,
+                    },
+                    participantWids
                 );
             } catch (err) {
                 return 'CreateGroupError: An unknown error occupied while creating a group';
@@ -2165,7 +2175,7 @@ class Client extends EventEmitter {
                 const statusCode = participant.error ?? 200;
 
                 if (autoSendInviteV4 && statusCode === 403) {
-                    window.Store.ContactCollection.gadd(participant.wid, { silent: true });
+                    window.Store.Contact.gadd(participant.wid, { silent: true });
                     const addParticipantResult = await window.Store.GroupInviteV4.sendGroupInviteMessage(
                         await window.Store.Chat.find(participant.wid),
                         createGroupResult.wid._serialized,

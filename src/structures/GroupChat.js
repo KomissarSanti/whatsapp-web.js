@@ -71,7 +71,7 @@ class GroupChat extends Chat {
 
     /**
      * Adds a list of participants by ID to the group
-     * @param {string|Array<string>} participantIds 
+     * @param {string|Array<string>} participantIds
      * @param {AddParticipnatsOptions} options An object thay handles options for adding participants
      * @returns {Promise<Object.<string, AddParticipantsResult>|string>} Returns an object with the resulting data or an error message as a string
      */
@@ -98,7 +98,7 @@ class GroupChat extends Chat {
                 419: 'The participant can\'t be added because the group is full'
             };
 
-            await window.Store.GroupMetadata.queryAndUpdate(groupWid);
+            await window.Store.GroupQueryAndUpdate(groupWid);
             const groupMetadata = group.groupMetadata;
             const groupParticipants = groupMetadata?.participants;
 
@@ -152,7 +152,7 @@ class GroupChat extends Chat {
 
                 if (autoSendInviteV4 && rpcResultCode === 403) {
                     let userChat, isInviteV4Sent = false;
-                    window.Store.ContactCollection.gadd(pWid, { silent: true });
+                    window.Store.Contact.gadd(pWid, { silent: true });
 
                     if (rpcResult.name === 'ParticipantRequestCodeCanBeSent' &&
                         (userChat = await window.Store.Chat.find(pWid))) {
@@ -175,9 +175,9 @@ class GroupChat extends Chat {
                 }
 
                 sleep &&
-                    participantWids.length > 1 &&
-                    participantWids.indexOf(pWid) !== participantWids.length - 1 &&
-                    (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
+                participantWids.length > 1 &&
+                participantWids.indexOf(pWid) !== participantWids.length - 1 &&
+                (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
             }
 
             return participantData;
