@@ -1113,9 +1113,9 @@ class Client extends EventEmitter {
         };
 
         const qrExists = await page.evaluate((selectors) => {return (null !== document.querySelector(selectors.INTRO_QRCODE_SELECTOR));}, {INTRO_QRCODE_SELECTOR});
-        if (!qrExists) {
-            await this.handlePhoneCode('', 'to_qr');
-        }
+        // if (!qrExists) {
+        //     await this.handlePhoneCode('', 'to_qr');
+        // }
 
         return qrListenerRun()
             .then(() => {
