@@ -259,8 +259,16 @@ class Client extends EventEmitter {
             });
         }
         await this.pupPage.evaluate(() => {
+            if (window.AuthStore.AppState.hasSynced) {
+                window.onAppStateHasSyncedEvent();
+            }
+
             window.AuthStore.AppState.on('change:state', (_AppState, state) => { window.onAuthAppStateChangedEvent(state); });
-            window.AuthStore.AppState.on('change:hasSynced', () => { window.onAppStateHasSyncedEvent(); });
+            window.AuthStore.AppState.on('change:hasSynced', (_AppState, state) => {
+                if (state !== window.AuthStore.AppState.hasSynced) {
+                    window.onAppStateHasSyncedEvent();
+                }
+            });
             window.AuthStore.Cmd.on('offline_progress_update', () => {
                 window.onOfflineProgressUpdateEvent(window.AuthStore.OfflineMessageHandler.getOfflineDeliveryProgress());
             });
