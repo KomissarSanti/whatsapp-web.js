@@ -359,6 +359,8 @@ class Client extends EventEmitter {
             }
             await this.inject(true);
         });
+        
+        return true;
     }
 
     /**
