@@ -374,10 +374,6 @@ class Client extends EventEmitter {
 
         const innerThis = this;
 
-        if (!await this.validateAuthUtils()) {
-            await this.reloadAuthUtils();
-        }
-
         let mode = await this.pupPage.evaluate(async () => {
             return window.AuthStore.Stream.mode;
         });
@@ -389,13 +385,6 @@ class Client extends EventEmitter {
         if (mode === 'SYNCING') {
             return currentPhoneCode;
         }
-
-        /**
-         * Emitted when a QR code is received
-         * @event Client#auth_mode
-         * @param {string} mode auth mode
-         */
-        this.emit(Events.AUTH_MODE, 'phoneCode');
 
         if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
             await this.pupPage.exposeFunction('codeChanged', async (code) => {
@@ -416,10 +405,10 @@ class Client extends EventEmitter {
             window.codeChanged(code);
 
             window.currentPhoneCode = code;
-            
+
             return code;
         }, phoneNumber, showNotification);
-        
+
         return result;
     }
     
