@@ -370,13 +370,59 @@ class Client extends EventEmitter {
      * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
      */
     async requestPairingCode(phoneNumber, showNotification = true) {
-        return await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        const innerThis = this;
+
+        if (!await this.validateAuthUtils()) {
+            await this.reloadAuthUtils();
+        }
+
+        let mode = await this.pupPage.evaluate(async () => {
+            return window.AuthStore.Stream.mode;
+        });
+
+        let currentPhoneCode = await this.pupPage.evaluate(async () => {
+            return window.currentPhoneCode;
+        });
+
+        if (mode === 'SYNCING') {
+            return currentPhoneCode;
+        }
+
+        /**
+         * Emitted when a QR code is received
+         * @event Client#auth_mode
+         * @param {string} mode auth mode
+         */
+        this.emit(Events.AUTH_MODE, 'phoneCode');
+
+        if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
+            await this.pupPage.exposeFunction('codeChanged', async (code) => {
+                /**
+                 * Emitted when a Phone code is received
+                 * @event Client#code
+                 * @param {string} code Code
+                 */
+                innerThis.emit(Events.CODE_RECEIVED, code);
+            });
+        }
+
+        const result = await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
             window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
             await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
-            return window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
-        }, phoneNumber, showNotification);
-    }
+            const code = await window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
 
+            window.codeChanged(code);
+
+            window.currentPhoneCode = code;
+            
+            return code;
+        }, phoneNumber, showNotification);
+        
+        return result;
+    }
+    
     /**
      * Attach event listeners to WA Web
      * Private function
