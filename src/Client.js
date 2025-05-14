@@ -367,7 +367,7 @@ class Client extends EventEmitter {
      * Request authentication via pairing code instead of QR code
      * @param {string} phoneNumber - Phone number in international, symbol-free format (e.g. 12025550108 for US, 551155501234 for Brazil)
      * @param {boolean} showNotification - Show notification to pair on phone number
-     * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
+     * @returns {Promise<{message: string, error: boolean}>} - Returns a pairing code in format "ABCDEFGH"
      */
     async requestPairingCode(phoneNumber, showNotification = true) {
         await new Promise(resolve => setTimeout(resolve, 5000));
@@ -398,15 +398,19 @@ class Client extends EventEmitter {
         }
 
         const result = await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
-            window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
-            await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
-            const code = await window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
+            try {
+                window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
+                await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
+                const code = await window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
 
-            window.codeChanged(code);
+                window.codeChanged(code);
+                window.currentPhoneCode = code;
 
-            window.currentPhoneCode = code;
-
-            return code;
+                return {message: code, error: false};
+            }
+            catch (e) {
+                return {message: e.name, error: true};
+            }
         }, phoneNumber, showNotification);
 
         return result;
