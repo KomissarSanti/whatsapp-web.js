@@ -1,8 +1,12 @@
 'use strict';
 
 const EventEmitter = require('events');
-const puppeteer = require('puppeteer');
+// const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
+
+puppeteer.use(StealthPlugin());
 
 const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
