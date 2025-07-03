@@ -901,6 +901,7 @@ class Client extends EventEmitter {
     /**
      * Message options.
      * @typedef {Object} MessageSendOptions
+     * @property {string} [messageId] - Message ID.
      * @property {boolean} [linkPreview=true] - Show links preview. Has no effect on multi-device accounts.
      * @property {boolean} [sendAudioAsVoice=false] - Send audio as voice message with a generated waveform
      * @property {boolean} [sendVideoAsGif=false] - Send video as gif
@@ -940,6 +941,7 @@ class Client extends EventEmitter {
         options.groupMentions && !Array.isArray(options.groupMentions) && (options.groupMentions = [options.groupMentions]);
 
         let internalOptions = {
+            messageId: options.messageId,
             linkPreview: options.linkPreview === false ? undefined : true,
             sendAudioAsVoice: options.sendAudioAsVoice,
             sendVideoAsGif: options.sendVideoAsGif,
@@ -1010,6 +1012,16 @@ class Client extends EventEmitter {
         }, chatId, content, internalOptions, sendSeen);
 
         return new Message(this, newMessage);
+    }
+
+    /**
+     * Generate message id
+     * @returns {Promise<string>}
+     */
+    async generateMessageId() {
+        return await this.pupPage.evaluate(async () => {
+            return await window.Store.MsgKey.newId();
+        });
     }
 
     /**

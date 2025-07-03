@@ -211,7 +211,7 @@ exports.LoadUtils = () => {
         }
 
         const meUser = window.Store.User.getMaybeMeUser();
-        const newId = await window.Store.MsgKey.newId();
+        const newId = options.messageId || await window.Store.MsgKey.newId();
         
         const newMsgId = new window.Store.MsgKey({
             from: meUser,
