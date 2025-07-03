@@ -1031,6 +1031,8 @@ declare namespace WAWebJS {
 
     /** Options for sending a message */
     export interface MessageSendOptions {
+        /** Generated Message ID */
+        messageId?: string
         /** Show links preview. Has no effect on multi-device accounts. */
         linkPreview?: boolean
         /** Send audio as voice message with a generated waveform */
