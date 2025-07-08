@@ -91,8 +91,9 @@ class Client extends EventEmitter {
     /**
      * Injection logic
      * Private function
+     * @property {boolean} reinject is this a reinject?
      */
-    async inject() {
+    async inject(reinject = false) {
         await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', {timeout: this.options.authTimeoutMs});
 
         const version = await this.getWWebVersion();
@@ -114,9 +115,9 @@ class Client extends EventEmitter {
                         if (state !== 'OPENING' && state !== 'UNLAUNCHED' && state !== 'PAIRING') {
                             window.AuthStore.AppState.off('change:state', waitTillInit);
                             r();
-                        } 
+                        }
                     });
-                }); 
+                });
             }
             state = window.AuthStore.AppState.state;
             return state == 'UNPAIRED' || state == 'UNPAIRED_IDLE';
@@ -142,21 +143,26 @@ class Client extends EventEmitter {
 
             // Register qr events
             let qrRetries = 0;
-            await exposeFunctionIfAbsent(this.pupPage, 'onQRChangedEvent', async (qr) => {
-                /**
-                * Emitted when a QR code is received
-                * @event Client#qr
-                * @param {string} qr QR Code
-                */
-                this.emit(Events.QR_RECEIVED, qr);
-                if (this.options.qrMaxRetries > 0) {
-                    qrRetries++;
-                    if (qrRetries > this.options.qrMaxRetries) {
-                        this.emit(Events.DISCONNECTED, 'Max qrcode retries reached');
-                        await this.destroy();
-                    }
-                }
+            const injected = await this.pupPage.evaluate(() => {
+                return typeof window.onQRChangedEvent !== 'undefined';
             });
+            if (!injected) {
+                await this.pupPage.exposeFunction('onQRChangedEvent', async (qr) => {
+                    /**
+                     * Emitted when a QR code is received
+                     * @event Client#qr
+                     * @param {string} qr QR Code
+                     */
+                    this.emit(Events.QR_RECEIVED, qr);
+                    if (this.options.qrMaxRetries > 0) {
+                        qrRetries++;
+                        if (qrRetries > this.options.qrMaxRetries) {
+                            this.emit(Events.DISCONNECTED, 'Max qrcode retries reached');
+                            await this.destroy();
+                        }
+                    }
+                });
+            }
 
 
             await this.pupPage.evaluate(async () => {
@@ -336,8 +342,10 @@ class Client extends EventEmitter {
                 await this.authStrategy.afterBrowserInitialized();
                 this.lastLoggedOut = false;
             }
-            await this.inject();
+            await this.inject(true);
         });
+        
+        return true;
     }
 
     /**
@@ -347,13 +355,52 @@ class Client extends EventEmitter {
      * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
      */
     async requestPairingCode(phoneNumber, showNotification = true) {
-        return await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
-            window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
-            await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
-            return window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
-        }, phoneNumber, showNotification);
-    }
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
+        const innerThis = this;
+
+        let mode = await this.pupPage.evaluate(async () => {
+            return window.AuthStore.Stream.mode;
+        });
+
+        let currentPhoneCode = await this.pupPage.evaluate(async () => {
+            return window.currentPhoneCode;
+        });
+
+        if (mode === 'SYNCING') {
+            return currentPhoneCode;
+        }
+
+        if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
+            await this.pupPage.exposeFunction('codeChanged', async (code) => {
+                /**
+                 * Emitted when a Phone code is received
+                 * @event Client#code
+                 * @param {string} code Code
+                 */
+                innerThis.emit(Events.CODE_RECEIVED, code);
+            });
+        }
+
+        const result = await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
+            try {
+                window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
+                await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
+                const code = await window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
+
+                window.codeChanged(code);
+                window.currentPhoneCode = code;
+
+                return {message: code, error: false};
+            }
+            catch (e) {
+                return {message: e.name, error: true};
+            }
+        }, phoneNumber, showNotification);
+
+        return result;
+    }
+    
     /**
      * Attach event listeners to WA Web
      * Private function
