@@ -8,7 +8,6 @@ exports.ExposeAuthStore = () => {
     window.AuthStore.OfflineMessageHandler = window.require('WAWebOfflineHandler').OfflineMessageHandler;
     window.AuthStore.PairingCodeLinkUtils = window.require('WAWebAltDeviceLinkingApi');
     window.AuthStore.Base64Tools = window.require('WABase64');
-    window.AuthStore.Stream = window.require('WAWebStreamModel').Stream;
     window.AuthStore.RegistrationUtils = {
         ...window.require('WAWebCompanionRegClientUtils'),
         ...window.require('WAWebAdvSignatureApi'),

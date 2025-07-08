@@ -71,7 +71,7 @@ class GroupChat extends Chat {
 
     /**
      * Adds a list of participants by ID to the group
-     * @param {string|Array<string>} participantIds
+     * @param {string|Array<string>} participantIds 
      * @param {AddParticipnatsOptions} options An object thay handles options for adding participants
      * @returns {Promise<Object.<string, AddParticipantsResult>|string>} Returns an object with the resulting data or an error message as a string
      */
@@ -98,7 +98,7 @@ class GroupChat extends Chat {
                 419: 'The participant can\'t be added because the group is full'
             };
 
-            await window.Store.GroupQueryAndUpdate(groupWid);
+            await window.Store.GroupQueryAndUpdate({ id: groupId });
             const groupMetadata = group.groupMetadata;
             const groupParticipants = groupMetadata?.participants;
 
@@ -175,9 +175,9 @@ class GroupChat extends Chat {
                 }
 
                 sleep &&
-                participantWids.length > 1 &&
-                participantWids.indexOf(pWid) !== participantWids.length - 1 &&
-                (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
+                    participantWids.length > 1 &&
+                    participantWids.indexOf(pWid) !== participantWids.length - 1 &&
+                    (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
             }
 
             return participantData;
@@ -191,8 +191,7 @@ class GroupChat extends Chat {
      */
     async removeParticipants(participantIds) {
         return await this.client.pupPage.evaluate(async (chatId, participantIds) => {
-            const chatWid = window.Store.WidFactory.createWid(chatId);
-            const chat = await window.Store.Chat.find(chatWid);
+            const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
             const participants = participantIds.map(p => {
                 return chat.groupMetadata.participants.get(p);
             }).filter(p => Boolean(p));
@@ -208,8 +207,7 @@ class GroupChat extends Chat {
      */
     async promoteParticipants(participantIds) {
         return await this.client.pupPage.evaluate(async (chatId, participantIds) => {
-            const chatWid = window.Store.WidFactory.createWid(chatId);
-            const chat = await window.Store.Chat.find(chatWid);
+            const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
             const participants = participantIds.map(p => {
                 return chat.groupMetadata.participants.get(p);
             }).filter(p => Boolean(p));
@@ -225,8 +223,7 @@ class GroupChat extends Chat {
      */
     async demoteParticipants(participantIds) {
         return await this.client.pupPage.evaluate(async (chatId, participantIds) => {
-            const chatWid = window.Store.WidFactory.createWid(chatId);
-            const chat = await window.Store.Chat.find(chatWid);
+            const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
             const participants = participantIds.map(p => {
                 return chat.groupMetadata.participants.get(p);
             }).filter(p => Boolean(p));
@@ -279,6 +276,27 @@ class GroupChat extends Chat {
         if(!success) return false;
         this.groupMetadata.desc = description;
         return true;
+    }
+    
+    /**
+     * Updates the group setting to allow only admins to add members to the group.
+     * @param {boolean} [adminsOnly=true] Enable or disable this option 
+     * @returns {Promise<boolean>} Returns true if the setting was properly updated. This can return false if the user does not have the necessary permissions.
+     */
+    async setAddMembersAdminsOnly(adminsOnly=true) {
+        const success = await this.client.pupPage.evaluate(async (groupId, adminsOnly) => {
+            const chatWid = window.Store.WidFactory.createWid(groupId);
+            try {
+                const response = await window.Store.GroupUtils.setGroupMemberAddMode(chatWid, 'member_add_mode', adminsOnly ? 0 : 1);
+                return response.name === 'SetMemberAddModeResponseSuccess';
+            } catch (err) {
+                if(err.name === 'SmaxParsingFailure') return false;
+                throw err;
+            }
+        }, this.id._serialized, adminsOnly);
+
+        success && (this.groupMetadata.memberAddMode = adminsOnly ? 'admin_add' : 'all_member_add');
+        return success;
     }
     
     /**
@@ -359,10 +377,20 @@ class GroupChat extends Chat {
     async getInviteCode() {
         const codeRes = await this.client.pupPage.evaluate(async chatId => {
             const chatWid = window.Store.WidFactory.createWid(chatId);
-            return window.Store.GroupInvite.queryGroupInviteCode(chatWid);
+            try {
+                return window.compareWwebVersions(window.Debug.VERSION, '>=', '2.3000.1020730154')
+                    ? await window.Store.GroupInvite.fetchMexGroupInviteCode(chatId)
+                    : await window.Store.GroupInvite.queryGroupInviteCode(chatWid, true);
+            }
+            catch (err) {
+                if(err.name === 'ServerStatusCodeError') return undefined;
+                throw err;
+            }
         }, this.id._serialized);
 
-        return codeRes.code;
+        return codeRes?.code
+            ? codeRes?.code
+            : codeRes;
     }
     
     /**
@@ -435,8 +463,7 @@ class GroupChat extends Chat {
      */
     async leave() {
         await this.client.pupPage.evaluate(async chatId => {
-            const chatWid = window.Store.WidFactory.createWid(chatId);
-            const chat = await window.Store.Chat.find(chatWid);
+            const chat = await window.WWebJS.getChat(chatId, { getAsModel: false });
             return window.Store.GroupUtils.sendExitGroup(chat);
         }, this.id._serialized);
     }

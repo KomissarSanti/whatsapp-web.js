@@ -7,7 +7,7 @@ exports.DefaultOptions = {
         headless: true,
         defaultViewport: null
     },
-    webVersion: '2.2346.52',
+    webVersion: '2.3000.1017054665',
     webVersionCache: {
         type: 'local',
     },
@@ -44,6 +44,7 @@ exports.Events = {
     CHAT_REMOVED: 'chat_removed',
     CHAT_ARCHIVED: 'chat_archived',
     MESSAGE_RECEIVED: 'message',
+    MESSAGE_CIPHERTEXT: 'message_ciphertext',
     MESSAGE_CREATE: 'message_create',
     MESSAGE_REVOKED_EVERYONE: 'message_revoke_everyone',
     MESSAGE_REVOKED_ME: 'message_revoke_me',
@@ -58,15 +59,14 @@ exports.Events = {
     GROUP_ADMIN_CHANGED: 'group_admin_changed',
     GROUP_MEMBERSHIP_REQUEST: 'group_membership_request',
     GROUP_UPDATE: 'group_update',
-    AUTH_MODE: 'auth_mode',
     QR_RECEIVED: 'qr',
-    CODE_RECEIVED: 'code',
     LOADING_SCREEN: 'loading_screen',
     DISCONNECTED: 'disconnected',
     STATE_CHANGED: 'change_state',
     BATTERY_CHANGED: 'change_battery',
     INCOMING_CALL: 'call',
-    REMOTE_SESSION_SAVED: 'remote_session_saved'
+    REMOTE_SESSION_SAVED: 'remote_session_saved',
+    VOTE_UPDATE: 'vote_update'
 };
 
 /**
