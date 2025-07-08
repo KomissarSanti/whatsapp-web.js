@@ -4,7 +4,6 @@ const Constants = require('./src/util/Constants');
 
 module.exports = {
     Client: require('./src/Client'),
-    ClientWPP: require('./src/ClientWPP'),
     
     version: require('./package.json').version,
 
@@ -23,7 +22,6 @@ module.exports = {
     ProductMetadata: require('./src/structures/ProductMetadata'),
     List: require('./src/structures/List'),
     Buttons: require('./src/structures/Buttons'),
-    LinkingMethod: require('./src/LinkingMethod'),
     
     // Auth Strategies
     NoAuth: require('./src/authStrategies/NoAuth'),
