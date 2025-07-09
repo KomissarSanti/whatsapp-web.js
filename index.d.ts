@@ -126,6 +126,8 @@ declare namespace WAWebJS {
          */
         generateMessageId(): Promise<string>
         
+        getLidByWid(chatId: string): Promise<any>
+        
         /** Searches for messages */
         searchMessages(query: string, options?: { chatId?: string, page?: number, limit?: number }): Promise<Message[]>
 

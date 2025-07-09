@@ -54,6 +54,8 @@ exports.ExposeStore = () => {
     window.Store.QueryExist = window.require('WAWebQueryExistsJob').queryWidExists;
     window.Store.ReplyUtils = window.require('WAWebMsgReply');
     window.Store.Settings = window.require('WAWebUserPrefsGeneral');
+    window.Store.UsyncUser = window.require('WAWebUsyncUser');
+    window.Store.UsyncQuery = window.require('WAWebUsync');
 
     window.Store.StickerTools = {
         ...window.require('WAWebImageUtils'),
