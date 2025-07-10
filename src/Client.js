@@ -893,7 +893,7 @@ class Client extends EventEmitter {
     }
     
     async findOrCreateChat(chatId) {
-        return await this.pupPage.evaluate(async (chatId) => {
+        const result = await this.pupPage.evaluate(async (chatId) => {
             let wid = window.Store.WidFactory.createWid(chatId);
             
             console.log('findOrCreateChat WID', wid);
@@ -906,8 +906,10 @@ class Client extends EventEmitter {
 
             console.log('findOrCreateChat RESULT', result);
             
-            return result;            
+            return JSON.stringify(result);            
         }, chatId); 
+        
+        return JSON.parse(result);
     }
     
     /**
