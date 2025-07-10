@@ -878,7 +878,7 @@ class Client extends EventEmitter {
     async getLidByWid(chatId) {
         return await this.pupPage.evaluate(async (chatId) => {
             let wid = window.Store.WidFactory.createWid(chatId);
-            return window.Store.LidUtils.getCurrentLid(wid);
+            return window.Store.LidUtils.getCurrentLid(wid).toString();
         }, chatId);
     }
     
