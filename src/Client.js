@@ -902,7 +902,7 @@ class Client extends EventEmitter {
 
             console.log('findOrCreateChat TYPE', type);
 
-            let result =  window.Store.FindOrCreateChat(wid, type);
+            let result = await window.Store.FindOrCreateChat(wid, type);
 
             console.log('findOrCreateChat RESULT', result);
             
