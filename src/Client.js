@@ -892,6 +892,24 @@ class Client extends EventEmitter {
         });
     }
     
+    async findOrCreateChat(chatId) {
+        return await this.pupPage.evaluate(async (chatId) => {
+            let wid = window.Store.WidFactory.createWid(chatId);
+            
+            console.log('findOrCreateChat WID', wid);
+            
+            let type = wid.isLid() ? 'username_contactless_search' : 'createChat';
+
+            console.log('findOrCreateChat TYPE', type);
+
+            let result =  window.Store.FindOrCreateChat(wid, type);
+
+            console.log('findOrCreateChat RESULT', result);
+            
+            return result;            
+        }, chatId); 
+    }
+    
     /**
      * Mark as seen for the Chat
      *  @param {string} chatId

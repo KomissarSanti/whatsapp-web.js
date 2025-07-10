@@ -125,6 +125,8 @@ declare namespace WAWebJS {
          * @returns {Promise<string>}
          */
         generateMessageId(): Promise<string>
+
+        findOrCreateChat(chatId: string): Promise<{chat: object, created: boolean}>
         
         getLidByWid(chatId: string): Promise<any>
         

@@ -99,7 +99,8 @@ exports.ExposeStore = () => {
     window.Store.AddonReactionTable = window.require('WAWebAddonReactionTableMode').reactionTableMode;
     window.Store.ChatGetters = window.require('WAWebChatGetters');
     window.Store.UploadUtils = window.require('WAWebUploadManager');
-    
+    window.Store.FindOrCreateChat = window.require('WAWebFindChatAction').findOrCreateLatestChat;
+
     window.Store.Settings = {
         ...window.require('WAWebUserPrefsGeneral'),
         ...window.require('WAWebUserPrefsNotifications'),
