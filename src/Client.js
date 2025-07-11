@@ -412,8 +412,10 @@ class Client extends EventEmitter {
                 return {message: e.name, error: true};
             }
         }, phoneNumber, showNotification);
-    }
 
+        return result;
+    }
+    
     /**
      * Attach event listeners to WA Web
      * Private function

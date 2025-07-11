@@ -55,6 +55,7 @@ exports.ExposeStore = () => {
     window.Store.MediaTypes = window.require('WAWebMmsMediaTypes');
     window.Store.MediaUpload = window.require('WAWebMediaMmsV4Upload');
     window.Store.MsgKey = window.require('WAWebMsgKey');
+    window.Store.NumberInfo = window.require('WAPhoneUtils');
     window.Store.OpaqueData = window.require('WAWebMediaOpaqueData');
     window.Store.QueryProduct = window.require('WAWebBizProductCatalogBridge');
     window.Store.QueryOrder = window.require('WAWebBizOrderBridge');
@@ -65,8 +66,10 @@ exports.ExposeStore = () => {
     window.Store.SendSeen = window.require('WAWebUpdateUnreadChatAction');
     window.Store.User = window.require('WAWebUserPrefsMeUser');
     window.Store.ContactMethods = window.require('WAWebContactGetters');
+    window.Store.UploadUtils = window.require('WAWebUploadManager');
     window.Store.UserConstructor = window.require('WAWebWid');
     window.Store.Validators = window.require('WALinkify');
+    window.Store.VCard = window.require('WAWebFrontendVcardUtils');
     window.Store.WidFactory = window.require('WAWebWidFactory');
     window.Store.ProfilePic = window.require('WAWebContactProfilePicThumbBridge');
     window.Store.PresenceUtils = window.require('WAWebPresenceChatAction');
@@ -91,6 +94,7 @@ exports.ExposeStore = () => {
     window.Store.pinUnpinMsg = window.require('WAWebSendPinMessageAction').sendPinInChatMsg;
     window.Store.QueryExist = window.require('WAWebQueryExistsJob').queryWidExists;
     window.Store.ReplyUtils = window.require('WAWebMsgReply');
+    window.Store.Settings = window.require('WAWebUserPrefsGeneral');
     window.Store.BotSecret = window.require('WAWebBotMessageSecret');
     window.Store.BotProfiles = window.require('WAWebBotProfileCollection');
     window.Store.ContactCollection = window.require('WAWebContactCollection').ContactCollection;
