@@ -941,17 +941,11 @@ class Client extends EventEmitter {
 
         if (json) {
             return {
-                chat_id: json.chat.id,
-                created: json.created,
-                numberId: json.numberId,
                 json: json,
             };
         }
 
         return {
-            chat_id: chatId,
-            created: false,
-            numberId: undefined,
             json: undefined,
         };
     }
