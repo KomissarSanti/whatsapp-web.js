@@ -893,26 +893,66 @@ class Client extends EventEmitter {
             return await window.Store.MsgKey.newId();
         });
     }
-    
+
     async findOrCreateChat(chatId) {
         const json = JSON.parse(await this.pupPage.evaluate(async (chatId) => {
             let wid = window.Store.WidFactory.createWid(chatId);
             let type = wid.isLid() ? 'username_contactless_search' : 'createChat';
-            let result = await window.Store.FindOrCreateChat(wid, type);
 
-            return JSON.stringify(result);            
+            const numberId = await window.Store.QueryExist(wid);
+            if (!numberId || numberId.wid === undefined) return null;
+
+            let result = await window.Store.FindOrCreateChat(wid, type);
+            result = Object.assign(result, {numberId});
+
+            return JSON.stringify(result);
         }, chatId));
 
         if (json) {
             return {
                 chat_id: json.chat.id,
                 created: json.created,
+                numberId: json.numberId,
+                json: json,
             };
         }
-        
+
         return {
-            chat_id: undefined, 
-            created: false
+            chat_id: chatId,
+            created: false,
+            numberId: undefined,
+            json: undefined,
+        };
+    }
+    
+    async findExistingChat(chatId) {
+        const json = JSON.parse(await this.pupPage.evaluate(async (chatId) => {
+            let wid = window.Store.WidFactory.createWid(chatId);
+            let type = wid.isLid() ? 'username_contactless_search' : 'createChat';
+
+            const numberId = await window.Store.QueryExist(wid);
+            if (!numberId || numberId.wid === undefined) return null;
+
+            let result = await window.Store.FindExistingChat(wid, type);
+            result = Object.assign(result, {numberId});
+
+            return JSON.stringify(result);
+        }, chatId));
+
+        if (json) {
+            return {
+                chat_id: json.chat.id,
+                created: json.created,
+                numberId: json.numberId,
+                json: json,
+            };
+        }
+
+        return {
+            chat_id: chatId,
+            created: false,
+            numberId: undefined,
+            json: undefined,
         };
     }
     
