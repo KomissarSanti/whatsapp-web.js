@@ -92,7 +92,7 @@ class Client extends EventEmitter {
      * Private function
      * @property {boolean} reinject is this a reinject?
      */
-    async inject(reinject = false) {
+    async inject() {
         await this.pupPage.waitForFunction('window.Debug?.VERSION != undefined', {timeout: this.options.authTimeoutMs});
 
         const version = await this.getWWebVersion();
@@ -178,77 +178,75 @@ class Client extends EventEmitter {
             });
         }
 
-        if (!reinject) {
-            await this.pupPage.exposeFunction('onAuthAppStateChangedEvent', async (state) => {
-                if (state == 'UNPAIRED_IDLE') {
-                    // refresh qr code
-                    window.Store.Cmd.refreshQR();
-                }
+    
+        await this.pupPage.exposeFunction('onAuthAppStateChangedEvent', async (state) => {
+            if (state == 'UNPAIRED_IDLE') {
+                // refresh qr code
+                window.Store.Cmd.refreshQR();
+            }
+        });
+
+        await this.pupPage.exposeFunction('onAppStateHasSyncedEvent', async () => {
+            const authEventPayload = await this.authStrategy.getAuthEventPayload();
+            /**
+             * Emitted when authentication is successful
+             * @event Client#authenticated
+             */
+            this.emit(Events.AUTHENTICATED, authEventPayload);
+
+            const injected = await this.pupPage.evaluate(async () => {
+                return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
             });
 
-            await this.pupPage.exposeFunction('onAppStateHasSyncedEvent', async () => {
-                const authEventPayload = await this.authStrategy.getAuthEventPayload();
+            if (!injected) {
+                if (this.options.webVersionCache.type === 'local' && this.currentIndexHtml) {
+                    const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
+                    const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
+
+                    await webCache.persist(this.currentIndexHtml, version);
+                }
+
+                if (isCometOrAbove) {
+                    await this.pupPage.evaluate(ExposeStore);
+                } else {
+                    // make sure all modules are ready before injection
+                    // 2 second delay after authentication makes sense and does not need to be made dyanmic or removed
+                    await new Promise(r => setTimeout(r, 2000));
+                    await this.pupPage.evaluate(ExposeLegacyStore);
+                }
+
+                // Check window.Store Injection
+                await this.pupPage.waitForFunction('window.Store != undefined');
+
                 /**
-                 * Emitted when authentication is successful
-                 * @event Client#authenticated
+                 * Current connection information
+                 * @type {ClientInfo}
                  */
-                this.emit(Events.AUTHENTICATED, authEventPayload);
+                this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {
+                    return { ...window.Store.Conn.serialize(), wid: window.Store.User.getMeUser() };
+                }));
 
-                const injected = await this.pupPage.evaluate(async () => {
-                    return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
-                });
+                this.interface = new InterfaceController(this);
 
-                if (!injected) {
-                    if (this.options.webVersionCache.type === 'local' && this.currentIndexHtml) {
-                        const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
-                        const webCache = WebCacheFactory.createWebCache(webCacheType, webCacheOptions);
-
-                        await webCache.persist(this.currentIndexHtml, version);
-                    }
-
-                    if (isCometOrAbove) {
-                        await this.pupPage.evaluate(ExposeStore);
-                    } else {
-                        // make sure all modules are ready before injection
-                        // 2 second delay after authentication makes sense and does not need to be made dyanmic or removed
-                        await new Promise(r => setTimeout(r, 2000));
-                        await this.pupPage.evaluate(ExposeLegacyStore);
-                    }
-
-                    // Check window.Store Injection
-                    await this.pupPage.waitForFunction('window.Store != undefined');
-
-                    /**
-                     * Current connection information
-                     * @type {ClientInfo}
-                     */
-                    this.info = new ClientInfo(this, await this.pupPage.evaluate(() => {
-                        return { ...window.Store.Conn.serialize(), wid: window.Store.User.getMeUser() };
-                    }));
-
-                    this.interface = new InterfaceController(this);
-
-                    //Load util functions (serializers, helper functions)
-                    await this.pupPage.evaluate(LoadUtils);
-
-                    await this.attachEventListeners(reinject);
-                    reinject = true;
-                }
-                /**
-                 * Emitted when the client has initialized and is ready to receive messages.
-                 * @event Client#ready
-                 */
-                this.emit(Events.READY);
-                this.authStrategy.afterAuthReady();
-            });
-            let lastPercent = null;
-            await this.pupPage.exposeFunction('onOfflineProgressUpdateEvent', async (percent) => {
-                if (lastPercent !== percent) {
-                    lastPercent = percent;
-                    this.emit(Events.LOADING_SCREEN, percent, 'WhatsApp'); // Message is hardcoded as "WhatsApp" for now
-                }
-            });
-        }
+                //Load util functions (serializers, helper functions)
+                await this.pupPage.evaluate(LoadUtils);
+                await this.attachEventListeners();
+            }
+            /**
+             * Emitted when the client has initialized and is ready to receive messages.
+             * @event Client#ready
+             */
+            this.emit(Events.READY);
+            this.authStrategy.afterAuthReady();
+        });
+        let lastPercent = null;
+        await this.pupPage.exposeFunction('onOfflineProgressUpdateEvent', async (percent) => {
+            if (lastPercent !== percent) {
+                lastPercent = percent;
+                this.emit(Events.LOADING_SCREEN, percent, 'WhatsApp'); // Message is hardcoded as "WhatsApp" for now
+            }
+        });
+            
         const logoutCatchInjected = await this.pupPage.evaluate(() => {
             return typeof window.onLogoutEvent !== 'undefined';
         });
