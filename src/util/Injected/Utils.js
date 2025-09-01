@@ -606,10 +606,11 @@ exports.LoadUtils = () => {
             await window.Store.GroupMetadata.update(chatWid);
             // chat.groupMetadata.participants._models
             //     .filter(x => x.id?._serialized?.endsWith('@lid'))
-            //     .forEach(x => x.contact?.phoneNumber && (x.id = x.contact.phoneNumber));
+            //     .forEach(x => x.contact?.phoneNumber && (x.id = x.contact.phoneNumber));            
+            model.groupMetadata = chat.groupMetadata.serialize();
             model.groupMetadata.participants = chat.groupMetadata.participants._models.map(item => {
                 const result = item.serialize();
-                
+
                 if (result.id.server === 'lid') {
                     result.lid = result.id;
                     result.id = item.contact?.phoneNumber || result.lid;
@@ -617,8 +618,6 @@ exports.LoadUtils = () => {
 
                 return result;
             });
-            
-            model.groupMetadata = chat.groupMetadata.serialize();
             model.isReadOnly = chat.groupMetadata.announce;
         }
 
