@@ -1193,6 +1193,7 @@ declare namespace WAWebJS {
     export class Location {
         latitude: string;
         longitude: string;
+        options?: LocationSendOptions;
         name?: string;
         address?: string;
         url?: string;
