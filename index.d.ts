@@ -175,6 +175,18 @@ declare namespace WAWebJS {
         /** Sends a channel admin invitation to a user, allowing them to become an admin of the channel */
         sendChannelAdminInvite(chatId: string, channelId: string, options?: { comment?: string }): Promise<boolean>
 
+        /**
+         * Generate message id
+         * @returns {Promise<string>}
+         */
+        generateMessageId(): Promise<string>
+
+
+        findOrCreateChat(chatId: string): Promise<{chat_id: string, created: boolean}>
+        findExistingChat(chatId: string): Promise<{chat_id: string, created: boolean}>
+
+        getLidByWid(chatId: string): Promise<any>
+        
         /** Searches for messages */
         searchMessages(query: string, options?: { chatId?: string, page?: number, limit?: number }): Promise<Message[]>
 
@@ -1341,6 +1353,8 @@ declare namespace WAWebJS {
 
     /** Options for sending a message */
     export interface MessageSendOptions {
+        /** Generated Message ID */
+        messageId?: string
         /** Show links preview. Has no effect on multi-device accounts. */
         linkPreview?: boolean
         /** Send audio as voice message with a generated waveform */

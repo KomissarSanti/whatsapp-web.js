@@ -355,6 +355,8 @@ class Client extends EventEmitter {
             }
             await this.inject();
         });
+
+        return true;
     }
 
     /**
@@ -994,6 +996,7 @@ class Client extends EventEmitter {
      * @property {boolean} [parseVCards=true] - Automatically parse vCards and send them as contacts
      * @property {string} [caption] - Image or video caption
      * @property {string} [quotedMessageId] - Id of the message that is being quoted (or replied to)
+     * @property {string} [messageId] - Id of the message outside
      * @property {GroupMention[]} [groupMentions] - An array of object that handle group mentions
      * @property {string[]} [mentions] - User IDs to mention in the message
      * @property {boolean} [sendSeen=true] - Mark the conversation as seen after sending the message
@@ -1054,7 +1057,8 @@ class Client extends EventEmitter {
             invokedBotWid: options.invokedBotWid,
             ignoreQuoteErrors: options.ignoreQuoteErrors !== false,
             waitUntilMsgSent: options.waitUntilMsgSent || false,
-            extraOptions: options.extra
+            extraOptions: options.extra,
+            messageId: options.messageId
         };
 
         const sendSeen = options.sendSeen !== false;
