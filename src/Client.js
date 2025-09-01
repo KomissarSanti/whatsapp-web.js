@@ -362,32 +362,54 @@ class Client extends EventEmitter {
     /**
      * Request authentication via pairing code instead of QR code
      * @param {string} phoneNumber - Phone number in international, symbol-free format (e.g. 12025550108 for US, 551155501234 for Brazil)
-     * @param {boolean} [showNotification = true] - Show notification to pair on phone number
-     * @param {number} [intervalMs = 180000] - The interval in milliseconds on how frequent to generate pairing code (WhatsApp default to 3 minutes)
-     * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
+     * @param {boolean} showNotification - Show notification to pair on phone number
+     * @returns {Promise<{message: string, error: boolean}>} - Returns a pairing code in format "ABCDEFGH"
      */
-    async requestPairingCode(phoneNumber, showNotification = true, intervalMs = 180000) {
-        return await this.pupPage.evaluate(async (phoneNumber, showNotification, intervalMs) => {
-            const getCode = async () => {
-                while (!window.AuthStore.PairingCodeLinkUtils) {
-                    await new Promise(resolve => setTimeout(resolve, 250));
-                }
+    async requestPairingCode(phoneNumber, showNotification = true) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        const innerThis = this;
+
+        let mode = await this.pupPage.evaluate(async () => {
+            return window.AuthStore.Stream.mode;
+        });
+
+        let currentPhoneCode = await this.pupPage.evaluate(async () => {
+            return window.currentPhoneCode;
+        });
+
+        if (mode === 'SYNCING') {
+            return currentPhoneCode;
+        }
+
+        if (!await this.pupPage.evaluate(() => {return window.codeChanged;})) {
+            await this.pupPage.exposeFunction('codeChanged', async (code) => {
+                /**
+                 * Emitted when a Phone code is received
+                 * @event Client#code
+                 * @param {string} code Code
+                 */
+                innerThis.emit(Events.CODE_RECEIVED, code);
+            });
+        }
+
+        const result = await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
+            try {
                 window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
                 await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
-                return window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
-            };
-            if (window.codeInterval) {
-                clearInterval(window.codeInterval); // remove existing interval
+                const code = await window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
+
+                window.codeChanged(code);
+                window.currentPhoneCode = code;
+
+                return {message: code, error: false};
             }
-            window.codeInterval = setInterval(async () => {
-                if (window.AuthStore.AppState.state != 'UNPAIRED' && window.AuthStore.AppState.state != 'UNPAIRED_IDLE') {
-                    clearInterval(window.codeInterval);
-                    return;
-                }
-                window.onCodeReceivedEvent(await getCode());
-            }, intervalMs);
-            return window.onCodeReceivedEvent(await getCode());
-        }, phoneNumber, showNotification, intervalMs);
+            catch (e) {
+                return {message: e.name, error: true};
+            }
+        }, phoneNumber, showNotification);
+
+        return result;
     }
 
     /**

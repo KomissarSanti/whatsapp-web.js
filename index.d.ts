@@ -51,27 +51,9 @@ declare namespace WAWebJS {
         /** Creates a new group */
         createGroup(title: string, participants?: string | Contact | Contact[] | string[], options?: CreateGroupOptions): Promise<CreateGroupResult|string>
 
-        /** Creates a new channel */
-        createChannel(title: string, options?: CreateChannelOptions): Promise<CreateChannelResult | string>
-
-        /** Deletes the channel you created */
-        deleteChannel(channelId: string): Promise<boolean>;
-
-        /** Subscribe to channel */
-        subscribeToChannel(channelId: string): Promise<boolean>
-
-        /** Unsubscribe from channel */
-        unsubscribeFromChannel(channelId: string, options?: UnsubscribeOptions): Promise<boolean>
-
-        /**
-         * Searches for channels based on search criteria, there are some notes:
-         * 1. The method finds only channels you are not subscribed to currently
-         * 2. If you have never been subscribed to a found channel
-         * or you have unsubscribed from it with {@link UnsubscribeOptions.deleteLocalModels} set to 'true',
-         * the lastMessage property of a found channel will be 'null'
-         */
-        searchChannels(searchOptions: SearchChannelsOptions): Promise<Array<Channel> | []>
-
+        /** Запросить код для телефона с WA */
+        requestPairingCode(phone: string, init: boolean): Promise<{message: string, error: boolean}>
+        
         /** Closes the client */
         destroy(): Promise<void>
 
@@ -156,15 +138,6 @@ declare namespace WAWebJS {
          * @param unmuteDate Date when the chat will be unmuted, leave as is to mute forever
          */
         muteChat(chatId: string, unmuteDate?: Date): Promise<{ isMuted: boolean, muteExpiration: number }>
-
-        /**
-         * Request authentication via pairing code instead of QR code
-         * @param phoneNumber - Phone number in international, symbol-free format (e.g. 12025550108 for US, 551155501234 for Brazil)
-         * @param showNotification - Show notification to pair on phone number. Defaults to `true`
-         * @param intervalMs - The interval in milliseconds on how frequent to generate pairing code (WhatsApp default to 3 minutes). Defaults to `180000`
-         * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
-         */
-        requestPairingCode(phoneNumber: string, showNotification?: boolean, intervalMs?: number): Promise<string>
 
         /** Force reset of connection state for the client */
         resetState(): Promise<void>
