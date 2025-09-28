@@ -370,12 +370,11 @@ class Client extends EventEmitter {
     /**
      * Request authentication via pairing code instead of QR code
      * @param {string} phoneNumber - Phone number in international, symbol-free format (e.g. 12025550108 for US, 551155501234 for Brazil)
-     * @param {boolean} showNotification - Show notification to pair on phone number
-     * @returns {Promise<{message: string, error: boolean}>} - Returns a pairing code in format "ABCDEFGH"
+     * @param {boolean} [showNotification = true] - Show notification to pair on phone number
+     * @param {number} [intervalMs = 180000] - The interval in milliseconds on how frequent to generate pairing code (WhatsApp default to 3 minutes)
+     * @returns {Promise<string>} - Returns a pairing code in format "ABCDEFGH"
      */
-    async requestPairingCode(phoneNumber, showNotification = true) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
+    async requestPairingCode(phoneNumber, showNotification = true, intervalMs = 180000) {
         const innerThis = this;
 
         let mode = await this.pupPage.evaluate(async () => {
@@ -401,23 +400,33 @@ class Client extends EventEmitter {
             });
         }
 
-        const result = await this.pupPage.evaluate(async (phoneNumber, showNotification) => {
+        return await this.pupPage.evaluate(async (phoneNumber, showNotification, intervalMs) => {
             try {
-                window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
-                await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
-                const code = await window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
+                const getCode = async () => {
+                    while (!window.AuthStore.PairingCodeLinkUtils) {
+                        await new Promise(resolve => setTimeout(resolve, 250));
+                    }
+                    window.AuthStore.PairingCodeLinkUtils.setPairingType('ALT_DEVICE_LINKING');
+                    await window.AuthStore.PairingCodeLinkUtils.initializeAltDeviceLinking();
+                    return window.AuthStore.PairingCodeLinkUtils.startAltLinkingFlow(phoneNumber, showNotification);
+                };
+                if (window.codeInterval) {
+                    clearInterval(window.codeInterval); // remove existing interval
+                }
+                window.codeInterval = setInterval(async () => {
+                    if (window.AuthStore.AppState.state != 'UNPAIRED' && window.AuthStore.AppState.state != 'UNPAIRED_IDLE') {
+                        clearInterval(window.codeInterval);
+                        return;
+                    }
+                    window.onCodeReceivedEvent(await getCode());
+                }, intervalMs);
 
-                window.codeChanged(code);
-                window.currentPhoneCode = code;
-
-                return {message: code, error: false};
+                return {message: window.onCodeReceivedEvent(await getCode()), error: false};
             }
             catch (e) {
                 return {message: e.name, error: true};
             }
-        }, phoneNumber, showNotification);
-
-        return result;
+        }, phoneNumber, showNotification, intervalMs);
     }
 
     /**
@@ -2446,20 +2455,69 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<{ lid: string, pn: string }>>}
      */
     async getContactLidAndPhone(userIds) {
-        return await this.pupPage.evaluate((userIds) => {
-            !Array.isArray(userIds) && (userIds = [userIds]);
-            return userIds.map(userId => {
-                const wid = window.Store.WidFactory.createWid(userId);
-                const isLid = wid.server === 'lid';
-                const lid = isLid ? wid : window.Store.LidUtils.getCurrentLid(wid);
-                const phone = isLid ? window.Store.LidUtils.getPhoneNumber(wid) : wid;
+        return await this.pupPage.evaluate(async (userIds) => {
+            if (!Array.isArray(userIds)) userIds = [userIds];
+
+            return await Promise.all(userIds.map(async (userId) => {
+                const { lid, phone } = await window.WWebJS.enforceLidAndPnRetrieval(userId);
 
                 return {
-                    lid: lid._serialized,
-                    pn: phone._serialized
+                    lid: lid?._serialized,
+                    pn: phone?._serialized
                 };
-            });
+            }));
         }, userIds);
+    }
+
+    /**
+     * Add or edit a customer note
+     * @see https://faq.whatsapp.com/1433099287594476
+     * @param {string} userId The ID of a customer to add a note to
+     * @param {string} note The note to add
+     * @returns {Promise<void>}
+     */
+    async addOrEditCustomerNote(userId, note) {
+        return await this.pupPage.evaluate(async (userId, note) => {
+            if (!window.Store.BusinessGatingUtils.smbNotesV1Enabled()) return;
+
+            return window.Store.CustomerNoteUtils.noteAddAction(
+                'unstructured',
+                window.Store.WidToJid.widToUserJid(window.Store.WidFactory.createWid(userId)),
+                note
+            );
+        }, userId, note);
+    }
+
+    /**
+     * Get a customer note
+     * @see https://faq.whatsapp.com/1433099287594476
+     * @param {string} userId The ID of a customer to get a note from
+     * @returns {Promise<{
+     *    chatId: string,
+     *    content: string,
+     *    createdAt: number,
+     *    id: string,
+     *    modifiedAt: number,
+     *    type: string
+     * }>}
+     */
+    async getCustomerNote(userId) {
+        return await this.pupPage.evaluate(async (userId) => {
+            if (!window.Store.BusinessGatingUtils.smbNotesV1Enabled()) return null;
+
+            const note = await window.Store.CustomerNoteUtils.retrieveOnlyNoteForChatJid(
+                window.Store.WidToJid.widToUserJid(window.Store.WidFactory.createWid(userId))
+            );
+
+            let serialized = note?.serialize();
+
+            if (!serialized) return null;
+
+            serialized.chatId = window.Store.JidToWid.userJidToUserWid(serialized.chatJid)._serialized;
+            delete serialized.chatJid;
+
+            return serialized;
+        }, userId);
     }
 }
 
