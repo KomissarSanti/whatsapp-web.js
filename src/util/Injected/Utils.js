@@ -539,7 +539,25 @@ exports.LoadUtils = () => {
                 chat = null;
             }
         } else {
-            chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
+            // chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
+            chat = await window.Store.FindOrCreateChat(chatWid)
+                .then(chat => chat.chat)
+                .catch(async err => {
+                    chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
+                    if (!chat) {
+                        return ;
+                    }
+
+                    try {
+                        await window.Store.Cmd.openChatBottom(chat);
+                        await window.Store.Cmd.openCurrentChatInfo();
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        await window.Store.Cmd.closeActiveChat();
+                        chat = (await window.Store.FindOrCreateChat(chatWid)).chat;
+                    } catch (err) {
+                        return ;
+                    }
+                })
         }
 
         return getAsModel && chat
