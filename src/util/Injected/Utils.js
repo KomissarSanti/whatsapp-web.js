@@ -540,24 +540,28 @@ exports.LoadUtils = () => {
             }
         } else {
             // chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
-            chat = await window.Store.FindOrCreateChat(chatWid)
-                .then(chat => chat.chat)
-                .catch(async err => {
-                    chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
-                    if (!chat) {
-                        return ;
-                    }
+            const isGroup = /@g.us/.test(chatId);
 
-                    try {
-                        await window.Store.Cmd.openChatBottom(chat);
-                        await window.Store.Cmd.openCurrentChatInfo();
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        await window.Store.Cmd.closeActiveChat();
-                        chat = (await window.Store.FindOrCreateChat(chatWid)).chat;
-                    } catch (err) {
-                        return ;
-                    }
-                })
+            if (isGroup) {
+                chat = await window.Store.FindOrCreateChat(chatWid)
+            }
+            else {
+                // chat = await window.Store.FindOrCreateChat(chatWid)
+                // .then(chat => chat.chat)
+                // .catch(async err => {
+
+                let actions = [{
+                    type: "add",
+                    phoneNumber: chatWid.user
+                }]
+                let query = window.require("WAWebContactSyncUtils").constructUsyncDeltaQuery(actions);
+                let result =  await query.execute();
+                let lid = window.Store.WidFactory.createWid(result.list[0].lid);
+                chat = (await window.Store.FindOrCreateChat(lid, 'username_contactless_search')).chat;
+
+                // console.log('GET CHAT', chatWid, lid, chat);
+                // })
+            }
         }
 
         return getAsModel && chat
