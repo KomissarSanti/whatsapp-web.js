@@ -290,7 +290,7 @@ exports.LoadUtils = () => {
             ...botOptions,
             ...extraOptions
         };
-        
+
         // Bot's won't reply if canonicalUrl is set (linking)
         if (botOptions) {
             delete message.canonicalUrl;
@@ -309,11 +309,11 @@ exports.LoadUtils = () => {
                 type: message.type === 'chat' ? 'text' : isMedia ? 'media' : 'pollCreation',
                 newsletterJid: chat.id.toJid(),
                 ...(isMedia
-                    ? {
-                        mediaMetadata: msg.avParams(),
-                        mediaHandle: isMedia ? mediaOptions.mediaHandle : null,
-                    }
-                    : {}
+                        ? {
+                            mediaMetadata: msg.avParams(),
+                            mediaHandle: isMedia ? mediaOptions.mediaHandle : null,
+                        }
+                        : {}
                 )
             });
 
@@ -333,11 +333,11 @@ exports.LoadUtils = () => {
 
         return window.Store.Msg.get(newMsgKey._serialized);
     };
-	
+
     window.WWebJS.editMessage = async (msg, content, options = {}) => {
         const extraOptions = options.extraOptions || {};
         delete options.extraOptions;
-        
+
         if (options.mentionedJidList) {
             options.mentionedJidList = await Promise.all(
                 options.mentionedJidList.map(async (id) => {
@@ -429,11 +429,11 @@ exports.LoadUtils = () => {
             isPtt: forceVoice,
             asDocument: forceDocument
         };
-      
+
         if (forceMediaHd && file.type.indexOf('image/') === 0) {
             mediaParams.maxDimension = 2560;
         }
-      
+
         const mediaPrep = window.Store.MediaPrep.prepRawMedia(opaqueData, mediaParams);
         const mediaData = await mediaPrep.waitForPrep();
         const mediaObject = window.Store.MediaObject.getOrCreateMediaObject(mediaData.filehash);
@@ -539,33 +539,7 @@ exports.LoadUtils = () => {
                 chat = null;
             }
         } else {
-            // todo
-            chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
-            
-            
-            // let isGroup = /@g.us/.test(chatId);
-
-            // if (isGroup) {
-            //     chat = (await window.Store.FindOrCreateChat(chatWid)).chat;
-            //     // console.log('isGro', chatWid, isGroup, chat);
-            // }
-            // else {
-            //     // chat = await window.Store.FindOrCreateChat(chatWid)
-            //     // .then(chat => chat.chat)
-            //     // .catch(async err => {
-            //
-            //     let actions = [{
-            //         type: "add",
-            //         phoneNumber: chatWid.user
-            //     }]
-            //     let query = window.require("WAWebContactSyncUtils").constructUsyncDeltaQuery(actions);
-            //     let result =  await query.execute();
-            //     let lid = window.Store.WidFactory.createWid(result.list[0].lid);
-            //     chat = (await window.Store.FindOrCreateChat(lid, 'username_contactless_search')).chat;
-            //
-            //     // console.log('GET CHAT', chatWid, lid, chat);
-            //     // })
-            // }
+            chat = window.Store.Chat.get(chatWid) || (await window.Store.FindOrCreateChat(chatWid))?.chat;
         }
 
         return getAsModel && chat
@@ -630,20 +604,10 @@ exports.LoadUtils = () => {
             model.isGroup = true;
             const chatWid = window.Store.WidFactory.createWid(chat.id._serialized);
             await window.Store.GroupMetadata.update(chatWid);
-            // chat.groupMetadata.participants._models
-            //     .filter(x => x.id?._serialized?.endsWith('@lid'))
-            //     .forEach(x => x.contact?.phoneNumber && (x.id = x.contact.phoneNumber));            
+            chat.groupMetadata.participants._models
+                .filter(x => x.id?._serialized?.endsWith('@lid'))
+                .forEach(x => x.contact?.phoneNumber && (x.id = x.contact.phoneNumber));
             model.groupMetadata = chat.groupMetadata.serialize();
-            model.groupMetadata.participants = chat.groupMetadata.participants._models.map(item => {
-                const result = item.serialize();
-
-                if (result.id.server === 'lid') {
-                    result.lid = result.id;
-                    result.id = item.contact?.phoneNumber || result.lid;
-                }
-
-                return result;
-            });
             model.isReadOnly = chat.groupMetadata.announce;
         }
 
@@ -820,17 +784,17 @@ exports.LoadUtils = () => {
         chatId = window.Store.WidFactory.createWid(chatId);
 
         switch (state) {
-        case 'typing':
-            await window.Store.ChatState.sendChatStateComposing(chatId);
-            break;
-        case 'recording':
-            await window.Store.ChatState.sendChatStateRecording(chatId);
-            break;
-        case 'stop':
-            await window.Store.ChatState.sendChatStatePaused(chatId);
-            break;
-        default:
-            throw 'Invalid chatstate';
+            case 'typing':
+                await window.Store.ChatState.sendChatStateComposing(chatId);
+                break;
+            case 'recording':
+                await window.Store.ChatState.sendChatStateRecording(chatId);
+                break;
+            case 'stop':
+                await window.Store.ChatState.sendChatStatePaused(chatId);
+                break;
+            default:
+                throw 'Invalid chatstate';
         }
 
         return true;
@@ -958,7 +922,7 @@ exports.LoadUtils = () => {
             throw err;
         }
     };
-    
+
     window.WWebJS.getProfilePicThumbToBase64 = async (chatWid) => {
         const profilePicCollection = await window.Store.ProfilePicThumb.find(chatWid);
 
@@ -1068,7 +1032,7 @@ exports.LoadUtils = () => {
         }));
 
         const groupJid = window.Store.WidToJid.widToGroupJid(groupWid);
-        
+
         const _getSleepTime = (sleep) => {
             if (!Array.isArray(sleep) || (sleep.length === 2 && sleep[0] === sleep[1])) {
                 return sleep;
@@ -1125,9 +1089,9 @@ exports.LoadUtils = () => {
                 }
 
                 sleep &&
-                    participantArgs.length > 1 &&
-                    participantArgs.indexOf(participant) !== participantArgs.length - 1 &&
-                    (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
+                participantArgs.length > 1 &&
+                participantArgs.indexOf(participant) !== participantArgs.length - 1 &&
+                (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
             }
             return result;
         } catch (err) {
@@ -1159,17 +1123,17 @@ exports.LoadUtils = () => {
         if (!message) return false;
 
         if (typeof duration !== 'number') return false;
-        
+
         const originalFunction = window.require('WAWebPinMsgConstants').getPinExpiryDuration;
         window.require('WAWebPinMsgConstants').getPinExpiryDuration = () => duration;
-        
+
         const response = await window.Store.PinnedMsgUtils.sendPinInChatMsg(message, action, duration);
 
         window.require('WAWebPinMsgConstants').getPinExpiryDuration = originalFunction;
 
         return response.messageSendResult === 'OK';
     };
-    
+
     window.WWebJS.getStatusModel = status => {
         const res = status.serialize();
         delete res._msgs;
@@ -1179,5 +1143,27 @@ exports.LoadUtils = () => {
     window.WWebJS.getAllStatuses = () => {
         const statuses = window.Store.Status.getModelsArray();
         return statuses.map(status => window.WWebJS.getStatusModel(status));
+    };
+
+    window.WWebJS.enforceLidAndPnRetrieval = async (userId) => {
+        const wid = window.Store.WidFactory.createWid(userId);
+        const isLid = wid.server === 'lid';
+
+        let lid = isLid ? wid : window.Store.LidUtils.getCurrentLid(wid);
+        let phone = isLid ? window.Store.LidUtils.getPhoneNumber(wid) : wid;
+
+        if (!isLid && !lid) {
+            const queryResult = await window.Store.QueryExist(wid);
+            if (!queryResult?.wid) return {};
+            lid = window.Store.LidUtils.getCurrentLid(wid);
+        }
+
+        if (isLid && !phone) {
+            const queryResult = await window.Store.QueryExist(wid);
+            if (!queryResult?.wid) return {};
+            phone = window.Store.LidUtils.getPhoneNumber(wid);
+        }
+
+        return { lid, phone };
     };
 };
