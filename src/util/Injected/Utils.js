@@ -540,10 +540,11 @@ exports.LoadUtils = () => {
             }
         } else {
             // chat = window.Store.Chat.get(chatWid) || (await window.Store.Chat.find(chatWid));
-            const isGroup = /@g.us/.test(chatId);
+            let isGroup = /@g.us/.test(chatId);
 
             if (isGroup) {
-                chat = await window.Store.FindOrCreateChat(chatWid).chat;
+                chat = (await window.Store.FindOrCreateChat(chatWid)).chat;
+                // console.log('isGro', chatWid, isGroup, chat);
             }
             else {
                 // chat = await window.Store.FindOrCreateChat(chatWid)
