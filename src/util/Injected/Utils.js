@@ -543,7 +543,7 @@ exports.LoadUtils = () => {
             const isGroup = /@g.us/.test(chatId);
 
             if (isGroup) {
-                chat = await window.Store.FindOrCreateChat(chatWid)
+                chat = await window.Store.FindOrCreateChat(chatWid).chat;
             }
             else {
                 // chat = await window.Store.FindOrCreateChat(chatWid)
