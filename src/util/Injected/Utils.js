@@ -539,6 +539,28 @@ exports.LoadUtils = () => {
                 chat = null;
             }
         } else {
+            let lid = window.Store.LidUtils.getCurrentLid(chatWid);
+            // console.log('CURRENT LID1', lid);
+            if (!lid) {
+                chat = window.Store.Chat.get(chatWid) || (await window.Store.FindOrCreateChat(chatWid))?.chat;
+
+                if (chat) {
+                    try {
+                        await window.Store.Cmd.openChatBottom(chat);
+                        await window.Store.Cmd.openCurrentChatInfo();
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        await window.Store.Cmd.closeActiveChat();
+                    }
+                    catch (err) {
+                        // console.log('GET CHAT ERROR', err);
+                        return;
+                    }
+                }
+            }
+
+            lid = window.Store.LidUtils.getCurrentLid(chatWid);
+            // console.log('CURRENT LID2', lid);
+
             chat = window.Store.Chat.get(chatWid) || (await window.Store.FindOrCreateChat(chatWid))?.chat;
         }
 
