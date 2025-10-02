@@ -540,7 +540,6 @@ exports.LoadUtils = () => {
             }
         } else {
             let lid = window.Store.LidUtils.getCurrentLid(chatWid);
-            // console.log('CURRENT LID1', lid);
             if (!lid) {
                 chat = window.Store.Chat.get(chatWid) || (await window.Store.FindOrCreateChat(chatWid))?.chat;
 
@@ -559,7 +558,6 @@ exports.LoadUtils = () => {
             }
 
             // lid = window.Store.LidUtils.getCurrentLid(chatWid);
-            // console.log('CURRENT LID2', lid);
 
             chat = window.Store.Chat.get(chatWid) || (await window.Store.FindOrCreateChat(chatWid))?.chat;
         }
