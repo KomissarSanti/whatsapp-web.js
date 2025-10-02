@@ -558,7 +558,7 @@ exports.LoadUtils = () => {
                 }
             }
 
-            lid = window.Store.LidUtils.getCurrentLid(chatWid);
+            // lid = window.Store.LidUtils.getCurrentLid(chatWid);
             // console.log('CURRENT LID2', lid);
 
             chat = window.Store.Chat.get(chatWid) || (await window.Store.FindOrCreateChat(chatWid))?.chat;
