@@ -553,7 +553,7 @@ exports.LoadUtils = () => {
 
                 if (chat) {
                     try {
-                        await window.Store.Cmd.openChatBottom(chat);    
+                        await window.Store.Cmd.openChatBottom({chat});    
                         await window.Store.Cmd.openCurrentChatInfo();
                         await new Promise(resolve => setTimeout(resolve, 500));
                         await window.Store.Cmd.closeActiveChat();
