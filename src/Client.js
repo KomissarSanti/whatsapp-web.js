@@ -219,17 +219,17 @@ class Client extends EventEmitter {
                 this.emit('TEST_CHECK', 2, 'after webcache persist');
 
                 if (isCometOrAbove) {
-                    await this.pupPage.evaluate(ExposeStore);
-                } else {
-                    // make sure all modules are ready before injection
-                    // 2 second delay after authentication makes sense and does not need to be made dyanmic or removed
-                    await new Promise(r => setTimeout(r, 2000)); 
                     try {
-                        await this.pupPage.evaluate(ExposeLegacyStore);
+                        await this.pupPage.evaluate(ExposeStore);
                     }
                     catch (e) {
                         this.emit('TEST_CHECK', 2, e);
                     }
+                } else {
+                    // make sure all modules are ready before injection
+                    // 2 second delay after authentication makes sense and does not need to be made dyanmic or removed
+                    await new Promise(r => setTimeout(r, 2000)); 
+                    await this.pupPage.evaluate(ExposeLegacyStore);
                 }
                 this.emit('TEST_CHECK', 3, 'after expose store');
 
