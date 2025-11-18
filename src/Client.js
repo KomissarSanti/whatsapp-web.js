@@ -209,6 +209,8 @@ class Client extends EventEmitter {
                 return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
             });
 
+            this.emit('TEST_CHECK', 1, injected);
+            
             if (!injected) {
                 if (this.options.webVersionCache.type === 'local' && this.currentIndexHtml) {
                     const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
@@ -216,6 +218,7 @@ class Client extends EventEmitter {
             
                     await webCache.persist(this.currentIndexHtml, version);
                 }
+                this.emit('TEST_CHECK', 2, 'after webcache persist');
 
                 if (isCometOrAbove) {
                     await this.pupPage.evaluate(ExposeStore);
@@ -225,9 +228,11 @@ class Client extends EventEmitter {
                     await new Promise(r => setTimeout(r, 2000)); 
                     await this.pupPage.evaluate(ExposeLegacyStore);
                 }
+                this.emit('TEST_CHECK', 3, 'after expose store');
 
                 // Check window.Store Injection
                 await this.pupPage.waitForFunction('window.Store != undefined');
+                this.emit('TEST_CHECK', 4, 'after wait store');
             
                 /**
                      * Current connection information
@@ -237,12 +242,16 @@ class Client extends EventEmitter {
                     return { ...window.Store.Conn.serialize(), wid: window.Store.User.getMaybeMePnUser() || window.Store.User.getMaybeMeLidUser() };
                 }));
 
+                this.emit('TEST_CHECK', 5, this.info);
+
                 this.interface = new InterfaceController(this);
 
                 //Load util functions (serializers, helper functions)
                 await this.pupPage.evaluate(LoadUtils);
+                this.emit('TEST_CHECK', 6, 'after load utils');
 
                 await this.attachEventListeners();
+                this.emit('TEST_CHECK', 7, 'after attach events');
             }
             /**
                  * Emitted when the client has initialized and is ready to receive messages.
