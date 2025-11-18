@@ -209,8 +209,6 @@ class Client extends EventEmitter {
                 return typeof window.Store !== 'undefined' && typeof window.WWebJS !== 'undefined';
             });
 
-            this.emit('TEST_CHECK', 1, injected);
-            
             if (!injected) {
                 if (this.options.webVersionCache.type === 'local' && this.currentIndexHtml) {
                     const { type: webCacheType, ...webCacheOptions } = this.options.webVersionCache;
@@ -226,7 +224,12 @@ class Client extends EventEmitter {
                     // make sure all modules are ready before injection
                     // 2 second delay after authentication makes sense and does not need to be made dyanmic or removed
                     await new Promise(r => setTimeout(r, 2000)); 
-                    await this.pupPage.evaluate(ExposeLegacyStore);
+                    try {
+                        await this.pupPage.evaluate(ExposeLegacyStore);
+                    }
+                    catch (e) {
+                        this.emit('TEST_CHECK', 2, e);
+                    }
                 }
                 this.emit('TEST_CHECK', 3, 'after expose store');
 
