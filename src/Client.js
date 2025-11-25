@@ -1289,10 +1289,16 @@ class Client extends EventEmitter {
      * @returns {Promise<Array<Contact>>}
      */
     async getContacts() {
-        let contacts = await this.pupPage.evaluate(() => {
-            return window.WWebJS.getContacts();
-        });
-
+        let contacts = [];
+        try {
+            contacts = await this.pupPage.evaluate(() => {
+                return window.WWebJS.getContacts();
+            });
+        }
+        catch (e) {
+            console.log('CONTACTS ERROR', e);
+        }
+        
         return contacts.map(contact => ContactFactory.create(this, contact));
     }
 
