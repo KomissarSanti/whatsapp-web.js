@@ -4,6 +4,7 @@ const EventEmitter = require('events');
 const puppeteer = require('puppeteer');
 const moduleRaid = require('@pedroslopez/moduleraid/moduleraid');
 
+const ManifestCache = require('./util/ManifestCache');
 const Util = require('./util/Util');
 const InterfaceController = require('./util/InterfaceController');
 const { WhatsWebURL, DefaultOptions, Events, WAState } = require('./util/Constants');
@@ -66,6 +67,13 @@ class Client extends EventEmitter {
     constructor(options = {}) {
         super();
 
+        // 🔽 Добавляем инициализацию кэша
+        this.manifestCache = new ManifestCache({
+            enabled: options.manifestCache?.enabled ?? true,
+            cacheDir: options.manifestCache?.cacheDir,
+            ttlMs: options.manifestCache?.ttlMs ?? (6 * 60 * 60 * 1000)
+        });
+        
         this.options = Util.mergeDefault(DefaultOptions, options);
         
         if(!this.options.authStrategy) {
@@ -356,6 +364,11 @@ class Client extends EventEmitter {
                 return error;
             };
         });
+
+        // 🔽 Внедряем кэширование после создания страницы
+        if (this.manifestCache.enabled) {
+            await this._setupManifestCacheInterception();
+        }
         
         await page.goto(WhatsWebURL, {
             waitUntil: 'load',
@@ -2478,6 +2491,63 @@ class Client extends EventEmitter {
                 };
             });
         }, userIds);
+    }  
+    
+    // 🔽 Новый приватный метод для настройки перехвата
+    async _setupManifestCacheInterception() {
+        const page = this.pupPage;
+
+        await page.setRequestInterception(true);
+
+        page.on('request', async (request) => {
+            const url = request.url();
+
+            // Проверка на URL манифеста
+            if (url.includes('/data/manifest') && url.endsWith('.json')) {
+                const cached = await this.manifestCache.get();
+
+                if (cached?.isFresh) {
+                    console.log(`[ManifestCache] 📦 Hit (v${cached.meta.version}, -${cached.remainingMinutes}m)`);
+                    await request.respond({
+                        status: 200,
+                        contentType: 'application/json',
+                        body: JSON.stringify(cached.content),
+                        headers: {
+                            'cache-control': 'public, max-age=3600',
+                            'x-from-cache': 'true',
+                            'x-cache-version': cached.meta.version
+                        }
+                    });
+                    return;
+                }
+
+                console.log('[ManifestCache] 🌐 Miss/Expired — fetching from network');
+                await request.continue();
+                return;
+            }
+
+            await request.continue();
+        });
+
+        page.on('response', async (response) => {
+            const url = response.url();
+
+            if (url.includes('/data/manifest') && url.endsWith('.json') && response.ok()) {
+                try {
+                    const body = await response.text();
+                    const version = this._extractVersionFromUrl(url);
+                    await this.manifestCache.set(body, version);
+                    console.log(`[ManifestCache] 💾 Saved v${version}`);
+                } catch (err) {
+                    console.error('[ManifestCache] ❌ Save error:', err.message);
+                }
+            }
+        });
+    }
+
+    _extractVersionFromUrl(url) {
+        const match = url.match(/manifest-([\d.]+)\.json/);
+        return match ? match[1] : 'unknown';
     }
 }
 
